@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Allowance Tracker</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Daily Allowance Tracker</h1>
+        
+        <!-- Auth Section -->
+        <div id="authSection" class="auth-section">
+            <div class="auth-container">
+                <h2>Sign In</h2>
+                <input type="email" id="emailInput" placeholder="Email">
+                <input type="password" id="passwordInput" placeholder="Password">
+                <button onclick="signIn()">Sign In</button>
+                <button onclick="signUp()">Sign Up</button>
+            </div>
+        </div>
+        
+        <!-- Main App (hidden until authenticated) -->
+        <div id="appSection" style="display: none;">
+            <div class="user-info">
+                <span id="userEmail"></span>
+                <button onclick="signOut()" class="sign-out-btn">Sign Out</button>
+            </div>
+            
+            <!-- Balance Overview -->
+            <div class="balance-section">
+                <h2 style="color: white; margin: 0 0 10px 0;">Your Balance</h2>
+                <div class="balance-grid">
+                    <div class="balance-item">
+                        <div class="balance-label">Total Accumulated</div>
+                        <div class="balance-amount" id="totalAccumulated">$0.00</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-label">Total Spent</div>
+                        <div class="balance-amount" id="totalSpent">$0.00</div>
+                    </div>
+                    <div class="balance-item">
+                        <div class="balance-label">Available Balance</div>
+                        <div class="balance-amount" id="availableBalance">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Proposed Purchases -->
+            <div class="proposed-section">
+                <h2>
+                    <span>🛒 Proposed Purchases</span>
+                    <button class="toggle-btn" onclick="toggleSection('proposedPurchases')">Hide</button>
+                </h2>
+                <div id="proposedPurchasesContent" class="collapsible-content">
+                    <div class="input-group">
+                        <input type="text" id="proposedName" placeholder="What do you want to buy?">
+                        <input type="number" id="proposedAmount" placeholder="Estimated cost" step="0.01" min="0">
+                        <button onclick="addProposed()">Add to List</button>
+                    </div>
+                    <ul class="item-list" id="proposedList"></ul>
+                    <div class="proposed-totals">
+                        <div class="proposed-totals-item">
+                            <div class="proposed-totals-label">Total Proposed</div>
+                            <div class="proposed-totals-amount" id="totalProposed">$0.00</div>
+                        </div>
+                        <div class="proposed-totals-item">
+                            <div class="proposed-totals-label">Available Balance</div>
+                            <div class="proposed-totals-amount" id="proposedAvailable">$0.00</div>
+                        </div>
+                        <div class="proposed-totals-item">
+                            <div class="proposed-totals-label">Remaining After</div>
+                            <div class="proposed-totals-amount" id="remainingAfter">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Wish List -->
+            <div class="wishlist-section">
+                <h2>
+                    <span>⭐ Wish List</span>
+                    <button class="toggle-btn" onclick="toggleSection('wishList')">Hide</button>
+                </h2>
+                <div id="wishListContent" class="collapsible-content">
+                    <!-- Add Wishlist Item -->
+                    <div class="input-group">
+                        <input type="text" id="wishlistName" placeholder="What would you like someday?">
+                        <input type="number" id="wishlistAmount" placeholder="Estimated cost" step="0.01" min="0">
+                        <select id="wishlistCategory" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1em;">
+                            <option value="">Select category...</option>
+                        </select>
+                        <button onclick="addWishlist()">Add to Wish List</button>
+                    </div>
+                    
+                    <!-- Wishlist Items by Category -->
+                    <div id="wishlistList"></div>
+                    
+                    <!-- Category Management -->
+                    <div style="margin-top: 30px;">
+                        <h3 style="color: #667eea; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Manage Categories</span>
+                            <button class="toggle-btn" onclick="toggleSection('categoryManagement')">Hide</button>
+                        </h3>
+                        <div id="categoryManagementContent" class="collapsible-content">
+                            <div class="input-group" style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="text" id="newCategoryName" placeholder="New category name">
+                                <button onclick="addCategory()">Add Category</button>
+                            </div>
+                            <div id="categoriesList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Spending -->
+            <div class="spending-section">
+                <h2>
+                    <span>💳 Record Spending</span>
+                    <button class="toggle-btn" onclick="toggleSection('recordSpending')">Hide</button>
+                </h2>
+                <div id="recordSpendingContent" class="collapsible-content">
+                    <div class="input-group">
+                        <input type="text" id="spendingName" placeholder="What did you buy?">
+                        <input type="number" id="spendingAmount" placeholder="Amount" step="0.01" min="0">
+                        <input type="date" id="spendingDate">
+                        <button onclick="addSpending()">Add Spending</button>
+                    </div>
+                    <ul class="item-list" id="spendingList"></ul>
+                </div>
+            </div>
+            
+            <!-- Settings -->
+            <div class="settings-section">
+                <h2>
+                    <span>⚙️ Settings</span>
+                    <button class="toggle-btn" onclick="toggleSection('settings')">Hide</button>
+                </h2>
+                <div id="settingsContent" class="collapsible-content">
+                    <div class="input-group">
+                        <label style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                            <span style="white-space: nowrap;">Daily Allowance: $</span>
+                            <input type="number" id="dailyAllowance" value="20" step="0.01" min="0">
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                            <span style="white-space: nowrap;">Start Date:</span>
+                            <input type="date" id="startDate">
+                        </label>
+                        <button onclick="updateSettings()">Update Settings</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Allowance History -->
+            <div class="settings-section">
+                <h2>
+                    <span>📋 Allowance Change History</span>
+                    <button class="toggle-btn" onclick="toggleSection('allowanceHistory')">Hide</button>
+                </h2>
+                <div id="allowanceHistoryContent" class="collapsible-content">
+                    <div class="input-group">
+                        <input type="date" id="historyDate" placeholder="Date">
+                        <input type="number" id="historyAmount" placeholder="Amount per day" step="0.01" min="0">
+                        <button onclick="addAllowanceHistory()">Add Entry</button>
+                    </div>
+                    <ul class="item-list" id="historyList"></ul>
+                </div>
+            </div>
+            
+            <!-- Daily Allowance Addition Log -->
+            <div class="settings-section">
+                <h2>
+                    <span>📊 Daily Allowance Addition Log</span>
+                    <button class="toggle-btn" onclick="toggleSection('allowanceLog')">Hide</button>
+                </h2>
+                <div id="allowanceLogContent" class="collapsible-content">
+                    <div class="input-group">
+                        <input type="date" id="logDate" placeholder="Date">
+                        <input type="number" id="logAmount" placeholder="Amount added that day" step="0.01" min="0">
+                        <button onclick="addAllowanceLog()">Add Log Entry</button>
+                    </div>
+                    <ul class="item-list" id="allowanceLogList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
