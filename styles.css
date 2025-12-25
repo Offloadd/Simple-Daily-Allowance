@@ -1,0 +1,500 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+h1 {
+    color: #667eea;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2em;
+}
+
+/* Auth Section Styles */
+.auth-section {
+    max-width: 400px;
+    margin: 50px auto;
+}
+
+.auth-container {
+    background: #f9fafb;
+    padding: 30px;
+    border-radius: 15px;
+}
+
+.auth-container h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.auth-container input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1em;
+}
+
+.auth-container button {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.user-info {
+    background: #f3f4f6;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sign-out-btn {
+    background: #ef4444;
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
+.sign-out-btn:hover {
+    background: #dc2626;
+}
+
+.balance-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+}
+
+.balance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.balance-item {
+    background: rgba(255,255,255,0.2);
+    padding: 15px;
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.balance-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.balance-amount {
+    font-size: 1.8em;
+    font-weight: bold;
+}
+
+.positive {
+    color: #4ade80;
+}
+
+.negative {
+    color: #f87171;
+}
+
+.settings-section, .spending-section, .proposed-section, .wishlist-section {
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: #667eea;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.toggle-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.toggle-btn:hover {
+    background: #764ba2;
+}
+
+.collapsible-content {
+    display: block;
+}
+
+.collapsible-content.hidden {
+    display: none;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+input[type="number"], input[type="date"], input[type="text"], input[type="email"], input[type="password"] {
+    padding: 10px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1em;
+    flex: 1;
+    min-width: 150px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+button {
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background: #764ba2;
+    transform: translateY(-2px);
+}
+
+.item-list {
+    list-style: none;
+}
+
+.item {
+    background: #f9fafb;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.item:hover {
+    background: #f3f4f6;
+    transform: translateX(5px);
+}
+
+.item-details {
+    flex: 1;
+}
+
+.item-name {
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.item-date {
+    font-size: 0.85em;
+    color: #6b7280;
+}
+
+.item-amount {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #667eea;
+    margin-right: 15px;
+}
+
+.item-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.delete-btn {
+    background: #ef4444;
+    padding: 5px 12px;
+    font-size: 0.9em;
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+}
+
+.edit-btn {
+    background: #3b82f6;
+    padding: 5px 12px;
+    font-size: 0.9em;
+}
+
+.edit-btn:hover {
+    background: #2563eb;
+}
+
+.save-btn {
+    background: #10b981;
+    padding: 5px 12px;
+    font-size: 0.9em;
+}
+
+.save-btn:hover {
+    background: #059669;
+}
+
+.move-btn {
+    background: #f59e0b;
+    padding: 5px 12px;
+    font-size: 0.9em;
+}
+
+.move-btn:hover {
+    background: #d97706;
+}
+
+.proposed-item {
+    background: #fef3c7;
+}
+
+.proposed-item:hover {
+    background: #fde68a;
+}
+
+.wishlist-item {
+    background: #e0e7ff;
+}
+
+.wishlist-item:hover {
+    background: #c7d2fe;
+}
+
+.can-afford {
+    background: #d1fae5;
+}
+
+.cannot-afford {
+    background: #fee2e2;
+}
+
+.afford-status {
+    font-size: 0.85em;
+    padding: 4px 8px;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+.afford-yes {
+    background: #4ade80;
+    color: white;
+}
+
+.afford-no {
+    background: #f87171;
+    color: white;
+}
+
+/* Compact grid layout for proposed items */
+#proposedList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+}
+
+#proposedList .item {
+    padding: 10px;
+    margin-bottom: 0;
+}
+
+#proposedList .item-name {
+    font-size: 0.95em;
+}
+
+#proposedList .item-amount, #wishlistList .item-amount {
+    font-size: 1em;
+    margin-right: 10px;
+}
+
+#proposedList .delete-btn, #wishlistList .delete-btn,
+#proposedList .edit-btn, #wishlistList .edit-btn,
+#proposedList .save-btn, #wishlistList .save-btn,
+#proposedList .move-btn, #wishlistList .move-btn {
+    padding: 4px 10px;
+    font-size: 0.85em;
+}
+
+#proposedList .afford-status {
+    font-size: 0.75em;
+    padding: 3px 6px;
+}
+
+.proposed-totals {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.proposed-totals-item {
+    text-align: center;
+}
+
+.proposed-totals-label {
+    font-size: 0.85em;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.proposed-totals-amount {
+    font-size: 1.4em;
+    font-weight: bold;
+}
+
+.totals-positive {
+    color: #4ade80;
+}
+
+.totals-negative {
+    color: #f87171;
+}
+
+/* Edit mode styling */
+.item.editing .item-details {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.item.editing input {
+    padding: 5px;
+    border: 2px solid #667eea;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+.item.editing .edit-name-input {
+    flex: 1;
+    min-width: 150px;
+}
+
+.item.editing .edit-amount-input {
+    width: 100px;
+}
+
+.log-item {
+    background: #f0fdf4;
+}
+
+.log-item:hover {
+    background: #dcfce7;
+}
+
+.category-section {
+    margin-bottom: 20px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.category-header {
+    background: #f3f4f6;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.category-header:hover {
+    background: #e5e7eb;
+}
+
+.category-title {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 1.1em;
+}
+
+.category-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.category-items {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+}
+
+.category-items.hidden {
+    display: none;
+}
+
+.category-item {
+    background: #e0e7ff;
+    margin-bottom: 0;
+    padding: 10px;
+}
+
+.category-item:hover {
+    background: #c7d2fe;
+}
+
+.category-item .item-name {
+    font-size: 0.95em;
+}
+
+.category-item .item-amount {
+    font-size: 1em;
+    margin-right: 10px;
+}
+
+.category-item .delete-btn,
+.category-item .edit-btn,
+.category-item .save-btn,
+.category-item .move-btn {
+    padding: 4px 10px;
+    font-size: 0.85em;
+}
+
+.category-management-item {
+    background: #f9fafb;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
