@@ -1,0 +1,1063 @@
+// Daily Allowance Tracker - Main Application
+// All data stored in Firestore instead of localStorage
+
+// ============================================================================
+// AUTHENTICATION FUNCTIONS
+// ============================================================================
+
+async function signIn() {
+    const email = document.getElementById('emailInput').value;
+    const password = document.getElementById('passwordInput').value;
+    
+    if (!email || !password) {
+        alert('Please enter email and password');
+        return;
+    }
+    
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+        console.error('Sign in error:', error);
+        alert(getErrorMessage(error));
+    }
+}
+
+async function signUp() {
+    const email = document.getElementById('emailInput').value;
+    const password = document.getElementById('passwordInput').value;
+    
+    if (!email || !password) {
+        alert('Please enter email and password');
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('Password must be at least 6 characters');
+        return;
+    }
+    
+    try {
+        await auth.createUserWithEmailAndPassword(email, password);
+        alert('Account created successfully!');
+    } catch (error) {
+        console.error('Sign up error:', error);
+        alert(getErrorMessage(error));
+    }
+}
+
+async function signOut() {
+    try {
+        await auth.signOut();
+        data = getDefaultData(); // Reset data
+    } catch (error) {
+        console.error('Sign out error:', error);
+        alert('Error signing out: ' + error.message);
+    }
+}
+
+function getErrorMessage(error) {
+    const messages = {
+        'auth/email-already-in-use': 'Email already registered',
+        'auth/invalid-email': 'Invalid email address',
+        'auth/weak-password': 'Password too weak',
+        'auth/user-not-found': 'No account found',
+        'auth/wrong-password': 'Incorrect password',
+        'auth/invalid-credential': 'Invalid email or password'
+    };
+    return messages[error.code] || error.message;
+}
+
+// ============================================================================
+// FIRESTORE DATA FUNCTIONS
+// ============================================================================
+
+function getUserDocRef() {
+    if (!window.currentUser) return null;
+    return db.collection('allowanceTracker').doc(window.currentUser.uid);
+}
+
+async function loadUserData() {
+    const docRef = getUserDocRef();
+    if (!docRef) return;
+    
+    try {
+        const doc = await docRef.get();
+        if (doc.exists) {
+            const firestoreData = doc.data();
+            console.log('Loaded data from Firestore');
+            
+            // Merge with defaults to ensure all properties exist
+            data = {
+                ...getDefaultData(),
+                ...firestoreData
+            };
+        } else {
+            console.log('No data in Firestore, using defaults');
+            data = getDefaultData();
+            // Save defaults to Firestore
+            await saveData();
+        }
+        
+        // Initialize form fields
+        document.getElementById('dailyAllowance').value = data.dailyAllowance;
+        document.getElementById('startDate').value = data.startDate;
+        document.getElementById('spendingDate').value = new Date().toISOString().split('T')[0];
+        
+        updateDisplay();
+    } catch (error) {
+        console.error('Error loading from Firestore:', error);
+        data = getDefaultData();
+        updateDisplay();
+    }
+}
+
+async function saveData() {
+    const docRef = getUserDocRef();
+    if (!docRef) {
+        console.log('No user, skipping Firestore save');
+        return;
+    }
+    
+    try {
+        await docRef.set(data);
+        console.log('Data saved to Firestore');
+        updateDisplay();
+    } catch (error) {
+        console.error('Error saving to Firestore:', error);
+        alert('Error saving data. Please try again.');
+    }
+}
+
+// ============================================================================
+// DATA MODEL
+// ============================================================================
+
+function getDefaultData() {
+    return {
+        dailyAllowance: 20,
+        startDate: new Date().toISOString().split('T')[0],
+        lastAllowanceDate: new Date().toISOString().split('T')[0],
+        totalAccumulated: 20,
+        spending: [],
+        proposed: [],
+        wishlist: [],
+        wishlistCategories: [
+            { id: 1, name: 'Unassigned', order: 0 }
+        ],
+        allowanceHistory: [],
+        allowanceLog: []
+    };
+}
+
+let data = getDefaultData();
+
+// Section visibility tracking
+let sectionVisibility = {
+    proposedPurchases: true,
+    wishList: true,
+    recordSpending: true,
+    settings: true,
+    allowanceHistory: true,
+    allowanceLog: true,
+    categoryManagement: true
+};
+
+let categoryVisibility = {};
+
+// ============================================================================
+// SECTION TOGGLE FUNCTIONS
+// ============================================================================
+
+function toggleSection(sectionName) {
+    sectionVisibility[sectionName] = !sectionVisibility[sectionName];
+    updateSectionVisibility();
+}
+
+function updateSectionVisibility() {
+    const sections = [
+        { name: 'proposedPurchases', contentId: 'proposedPurchasesContent' },
+        { name: 'wishList', contentId: 'wishListContent' },
+        { name: 'recordSpending', contentId: 'recordSpendingContent' },
+        { name: 'settings', contentId: 'settingsContent' },
+        { name: 'allowanceHistory', contentId: 'allowanceHistoryContent' },
+        { name: 'allowanceLog', contentId: 'allowanceLogContent' },
+        { name: 'categoryManagement', contentId: 'categoryManagementContent' }
+    ];
+    
+    sections.forEach(section => {
+        const content = document.getElementById(section.contentId);
+        if (!content) return;
+        
+        const button = content.previousElementSibling.querySelector('.toggle-btn');
+        
+        if (sectionVisibility[section.name]) {
+            content.classList.remove('hidden');
+            if (button) button.textContent = 'Hide';
+        } else {
+            content.classList.add('hidden');
+            if (button) button.textContent = 'Show';
+        }
+    });
+}
+
+// ============================================================================
+// SETTINGS FUNCTIONS
+// ============================================================================
+
+function updateSettings() {
+    const newAllowance = parseFloat(document.getElementById('dailyAllowance').value) || 0;
+    const oldAllowance = data.dailyAllowance;
+    
+    if (newAllowance !== oldAllowance) {
+        data.allowanceHistory.push({
+            id: Date.now(),
+            date: new Date().toISOString().split('T')[0],
+            amount: newAllowance,
+            previousAmount: oldAllowance
+        });
+    }
+    
+    data.dailyAllowance = newAllowance;
+    data.startDate = document.getElementById('startDate').value;
+    saveData();
+}
+
+// ============================================================================
+// DATE/TIME FUNCTIONS (PST)
+// ============================================================================
+
+function getPSTDate() {
+    const now = new Date();
+    const pstOffset = -8 * 60;
+    const localOffset = now.getTimezoneOffset();
+    const pstTime = new Date(now.getTime() + (localOffset - pstOffset) * 60 * 1000);
+    
+    let currentDay = new Date(pstTime);
+    if (pstTime.getHours() < 5) {
+        currentDay.setDate(currentDay.getDate() - 1);
+    }
+    
+    return currentDay.toISOString().split('T')[0];
+}
+
+// ============================================================================
+// ALLOWANCE LOG FUNCTIONS
+// ============================================================================
+
+function generateDailyLogEntries() {
+    const todayPST = getPSTDate();
+    const startDate = new Date(data.startDate);
+    const currentDate = new Date(todayPST);
+    
+    const existingLogDates = new Set(data.allowanceLog.map(log => log.date));
+    
+    const allDates = [];
+    for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+        allDates.push(d.toISOString().split('T')[0]);
+    }
+    
+    let entriesAdded = 0;
+    allDates.forEach(dateStr => {
+        if (!existingLogDates.has(dateStr)) {
+            const applicableRate = getDailyAllowanceForDate(dateStr);
+            
+            data.allowanceLog.push({
+                id: Date.now() + entriesAdded,
+                timestamp: new Date(dateStr + 'T05:00:00').toISOString(),
+                date: dateStr,
+                amountAdded: applicableRate,
+                autoGenerated: true
+            });
+            entriesAdded++;
+        }
+    });
+    
+    data.allowanceLog.sort((a, b) => a.date.localeCompare(b.date));
+    
+    let runningTotal = 0;
+    data.allowanceLog.forEach(entry => {
+        runningTotal += entry.amountAdded;
+        entry.newAccumulated = runningTotal;
+    });
+    
+    if (data.allowanceLog.length > 0) {
+        data.totalAccumulated = data.allowanceLog[data.allowanceLog.length - 1].newAccumulated;
+    }
+}
+
+function getDailyAllowanceForDate(dateStr) {
+    const relevantChanges = data.allowanceHistory
+        .filter(change => change.date <= dateStr)
+        .sort((a, b) => b.date.localeCompare(a.date));
+    
+    if (relevantChanges.length > 0) {
+        return relevantChanges[0].amount;
+    }
+    
+    return data.dailyAllowance;
+}
+
+function regenerateLogTotals() {
+    data.allowanceLog.sort((a, b) => a.date.localeCompare(b.date));
+    
+    let runningTotal = 0;
+    data.allowanceLog.forEach(entry => {
+        runningTotal += entry.amountAdded;
+        entry.newAccumulated = runningTotal;
+    });
+    
+    if (data.allowanceLog.length > 0) {
+        data.totalAccumulated = data.allowanceLog[data.allowanceLog.length - 1].newAccumulated;
+    }
+}
+
+function addAllowanceLog() {
+    const dateInput = document.getElementById('logDate').value;
+    const amount = parseFloat(document.getElementById('logAmount').value);
+    
+    if (!dateInput || amount < 0 || isNaN(amount)) {
+        alert('Please fill in date and amount');
+        return;
+    }
+    
+    const existingIndex = data.allowanceLog.findIndex(log => log.date === dateInput);
+    if (existingIndex !== -1) {
+        alert('An entry for this date already exists. Please edit or delete it first.');
+        return;
+    }
+    
+    data.allowanceLog.push({
+        id: Date.now(),
+        timestamp: new Date(dateInput + 'T05:00:00').toISOString(),
+        date: dateInput,
+        amountAdded: amount,
+        manualEntry: true
+    });
+    
+    document.getElementById('logDate').value = '';
+    document.getElementById('logAmount').value = '';
+    
+    regenerateLogTotals();
+    saveData();
+}
+
+function editAllowanceLog(id) {
+    const item = data.allowanceLog.find(item => item.id === id);
+    if (!item) return;
+    
+    item.editing = true;
+    updateDisplay();
+}
+
+function saveAllowanceLog(id) {
+    const item = data.allowanceLog.find(item => item.id === id);
+    if (!item) return;
+    
+    const dateInput = document.getElementById(`log-date-${id}`);
+    const amountInput = document.getElementById(`log-amount-${id}`);
+    
+    const newDate = dateInput.value;
+    const newAmount = parseFloat(amountInput.value);
+    
+    if (!newDate || newAmount < 0 || isNaN(newAmount)) {
+        alert('Please enter valid values');
+        return;
+    }
+    
+    const existingEntry = data.allowanceLog.find(log => log.date === newDate && log.id !== id);
+    if (existingEntry) {
+        alert('An entry for this date already exists.');
+        return;
+    }
+    
+    item.date = newDate;
+    item.timestamp = new Date(newDate + 'T05:00:00').toISOString();
+    item.amountAdded = newAmount;
+    item.editing = false;
+    
+    regenerateLogTotals();
+    saveData();
+}
+
+function deleteAllowanceLog(id) {
+    data.allowanceLog = data.allowanceLog.filter(item => item.id !== id);
+    regenerateLogTotals();
+    saveData();
+}
+
+// ============================================================================
+// ALLOWANCE HISTORY FUNCTIONS
+// ============================================================================
+
+function addAllowanceHistory() {
+    const dateInput = document.getElementById('historyDate').value;
+    const amount = parseFloat(document.getElementById('historyAmount').value);
+    
+    if (!dateInput || !amount || amount <= 0) {
+        alert('Please fill in date and amount');
+        return;
+    }
+    
+    data.allowanceHistory.push({
+        id: Date.now(),
+        date: dateInput,
+        amount: amount,
+        previousAmount: null
+    });
+    
+    document.getElementById('historyDate').value = '';
+    document.getElementById('historyAmount').value = '';
+    
+    data.allowanceHistory.sort((a, b) => a.date.localeCompare(b.date));
+    saveData();
+}
+
+function editAllowanceHistory(id) {
+    const item = data.allowanceHistory.find(item => item.id === id);
+    if (!item) return;
+    
+    item.editing = true;
+    updateDisplay();
+}
+
+function saveAllowanceHistory(id) {
+    const item = data.allowanceHistory.find(item => item.id === id);
+    if (!item) return;
+    
+    const dateInput = document.getElementById(`history-date-${id}`);
+    const amountInput = document.getElementById(`history-amount-${id}`);
+    
+    const newDate = dateInput.value;
+    const newAmount = parseFloat(amountInput.value);
+    
+    if (!newDate || !newAmount || newAmount <= 0) {
+        alert('Please enter valid date and amount');
+        return;
+    }
+    
+    item.date = newDate;
+    item.amount = newAmount;
+    item.editing = false;
+    
+    saveData();
+}
+
+function deleteAllowanceHistory(id) {
+    data.allowanceHistory = data.allowanceHistory.filter(item => item.id !== id);
+    saveData();
+}
+
+// ============================================================================
+// SPENDING FUNCTIONS
+// ============================================================================
+
+function calculateTotalSpent() {
+    return data.spending.reduce((sum, item) => sum + item.amount, 0);
+}
+
+function addSpending() {
+    const name = document.getElementById('spendingName').value.trim();
+    const amount = parseFloat(document.getElementById('spendingAmount').value);
+    const dateInput = document.getElementById('spendingDate').value;
+    
+    if (!name || !amount || amount <= 0 || !dateInput) {
+        alert('Please fill in all spending fields');
+        return;
+    }
+    
+    data.spending.push({
+        id: Date.now(),
+        name: name,
+        amount: amount,
+        date: dateInput
+    });
+    
+    document.getElementById('spendingName').value = '';
+    document.getElementById('spendingAmount').value = '';
+    
+    saveData();
+}
+
+function deleteSpending(id) {
+    data.spending = data.spending.filter(item => item.id !== id);
+    saveData();
+}
+
+function editSpending(id) {
+    const item = data.spending.find(item => item.id === id);
+    if (!item) return;
+    
+    item.editing = true;
+    updateDisplay();
+}
+
+function saveSpending(id) {
+    const item = data.spending.find(item => item.id === id);
+    if (!item) return;
+    
+    const nameInput = document.getElementById(`spending-name-${id}`);
+    const amountInput = document.getElementById(`spending-amount-${id}`);
+    
+    const newName = nameInput.value.trim();
+    const newAmount = parseFloat(amountInput.value);
+    
+    if (!newName || !newAmount || newAmount <= 0) {
+        alert('Please enter valid name and amount');
+        return;
+    }
+    
+    item.name = newName;
+    item.amount = newAmount;
+    item.editing = false;
+    
+    saveData();
+}
+
+// ============================================================================
+// PROPOSED PURCHASES FUNCTIONS
+// ============================================================================
+
+function addProposed() {
+    const name = document.getElementById('proposedName').value.trim();
+    const amount = parseFloat(document.getElementById('proposedAmount').value);
+    
+    if (!name || !amount || amount <= 0) {
+        alert('Please fill in all proposed purchase fields');
+        return;
+    }
+    
+    data.proposed.push({
+        id: Date.now(),
+        name: name,
+        amount: amount
+    });
+    
+    document.getElementById('proposedName').value = '';
+    document.getElementById('proposedAmount').value = '';
+    
+    saveData();
+}
+
+function deleteProposed(id) {
+    data.proposed = data.proposed.filter(item => item.id !== id);
+    saveData();
+}
+
+function editProposed(id) {
+    const item = data.proposed.find(item => item.id === id);
+    if (!item) return;
+    
+    item.editing = true;
+    updateDisplay();
+}
+
+function saveProposed(id) {
+    const item = data.proposed.find(item => item.id === id);
+    if (!item) return;
+    
+    const nameInput = document.getElementById(`proposed-name-${item.id}`);
+    const amountInput = document.getElementById(`proposed-amount-${item.id}`);
+    
+    const newName = nameInput.value.trim();
+    const newAmount = parseFloat(amountInput.value);
+    
+    if (!newName || !newAmount || newAmount <= 0) {
+        alert('Please enter valid name and amount');
+        return;
+    }
+    
+    item.name = newName;
+    item.amount = newAmount;
+    item.editing = false;
+    
+    saveData();
+}
+
+function moveProposedToWishlist(id) {
+    const item = data.proposed.find(item => item.id === id);
+    if (!item) return;
+    
+    data.wishlist.push({
+        id: Date.now(),
+        name: item.name,
+        amount: item.amount,
+        categoryId: 1 // Default to Unassigned
+    });
+    
+    data.proposed = data.proposed.filter(item => item.id !== id);
+    saveData();
+}
+
+// ============================================================================
+// WISHLIST & CATEGORY FUNCTIONS
+// ============================================================================
+
+function addCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    
+    if (!name) {
+        alert('Please enter a category name');
+        return;
+    }
+    
+    const newId = Math.max(...data.wishlistCategories.map(c => c.id), 0) + 1;
+    data.wishlistCategories.push({
+        id: newId,
+        name: name,
+        order: data.wishlistCategories.length
+    });
+    
+    document.getElementById('newCategoryName').value = '';
+    saveData();
+}
+
+function deleteCategory(id) {
+    if (id === 1) {
+        alert('Cannot delete the Unassigned category');
+        return;
+    }
+    
+    data.wishlist.forEach(item => {
+        if (item.categoryId === id) {
+            item.categoryId = 1;
+        }
+    });
+    
+    data.wishlistCategories = data.wishlistCategories.filter(cat => cat.id !== id);
+    saveData();
+}
+
+function editCategory(id) {
+    const category = data.wishlistCategories.find(cat => cat.id === id);
+    if (!category) return;
+    
+    category.editing = true;
+    updateDisplay();
+}
+
+function saveCategory(id) {
+    const category = data.wishlistCategories.find(cat => cat.id === id);
+    if (!category) return;
+    
+    const nameInput = document.getElementById(`category-name-${id}`);
+    const newName = nameInput.value.trim();
+    
+    if (!newName) {
+        alert('Please enter a valid category name');
+        return;
+    }
+    
+    category.name = newName;
+    category.editing = false;
+    saveData();
+}
+
+function changeItemCategory(itemId, newCategoryId) {
+    const item = data.wishlist.find(item => item.id === itemId);
+    if (!item) return;
+    
+    item.categoryId = parseInt(newCategoryId);
+    saveData();
+}
+
+function toggleCategory(categoryId) {
+    const element = document.getElementById(`category-items-${categoryId}`);
+    const button = document.getElementById(`category-toggle-${categoryId}`);
+    
+    if (element) {
+        element.classList.toggle('hidden');
+        const isHidden = element.classList.contains('hidden');
+        categoryVisibility[categoryId] = !isHidden;
+        
+        if (button) {
+            button.textContent = isHidden ? 'Show' : 'Hide';
+        }
+    }
+}
+
+function addWishlist() {
+    const name = document.getElementById('wishlistName').value.trim();
+    const amount = parseFloat(document.getElementById('wishlistAmount').value);
+    const categoryId = parseInt(document.getElementById('wishlistCategory').value);
+    
+    if (!name || !amount || amount <= 0 || !categoryId) {
+        alert('Please fill in all fields including category');
+        return;
+    }
+    
+    data.wishlist.push({
+        id: Date.now(),
+        name: name,
+        amount: amount,
+        categoryId: categoryId
+    });
+    
+    document.getElementById('wishlistName').value = '';
+    document.getElementById('wishlistAmount').value = '';
+    document.getElementById('wishlistCategory').value = '';
+    
+    saveData();
+}
+
+function deleteWishlist(id) {
+    data.wishlist = data.wishlist.filter(item => item.id !== id);
+    saveData();
+}
+
+function editWishlist(id) {
+    const item = data.wishlist.find(item => item.id === id);
+    if (!item) return;
+    
+    item.editing = true;
+    updateDisplay();
+}
+
+function saveWishlist(id) {
+    const item = data.wishlist.find(item => item.id === id);
+    if (!item) return;
+    
+    const nameInput = document.getElementById(`wishlist-name-${item.id}`);
+    const amountInput = document.getElementById(`wishlist-amount-${item.id}`);
+    
+    const newName = nameInput.value.trim();
+    const newAmount = parseFloat(amountInput.value);
+    
+    if (!newName || !newAmount || newAmount <= 0) {
+        alert('Please enter valid name and amount');
+        return;
+    }
+    
+    item.name = newName;
+    item.amount = newAmount;
+    item.editing = false;
+    
+    saveData();
+}
+
+function moveWishlistToProposed(id) {
+    const item = data.wishlist.find(item => item.id === id);
+    if (!item) return;
+    
+    data.proposed.push({
+        id: Date.now(),
+        name: item.name,
+        amount: item.amount
+    });
+    
+    saveData();
+}
+
+// ============================================================================
+// DISPLAY / RENDER FUNCTIONS
+// ============================================================================
+
+function updateDisplay() {
+    generateDailyLogEntries();
+    
+    const accumulated = data.totalAccumulated;
+    const spent = calculateTotalSpent();
+    const available = accumulated - spent;
+    
+    // Update balances
+    document.getElementById('totalAccumulated').textContent = `$${accumulated.toFixed(2)}`;
+    document.getElementById('totalSpent').textContent = `$${spent.toFixed(2)}`;
+    
+    const availableBalanceDiv = document.getElementById('availableBalance');
+    availableBalanceDiv.innerHTML = `<span class="${available >= 0 ? 'positive' : 'negative'}">$${available.toFixed(2)}</span>`;
+    
+    // Update spending list
+    renderSpendingList();
+    
+    // Update proposed list
+    renderProposedList(available);
+    
+    // Update wishlist
+    renderWishlist();
+    
+    // Update categories management
+    renderCategoriesManagement();
+    
+    // Update allowance history
+    renderAllowanceHistory();
+    
+    // Update allowance log
+    renderAllowanceLog();
+    
+    // Update section visibility
+    updateSectionVisibility();
+}
+
+function renderSpendingList() {
+    const spendingList = document.getElementById('spendingList');
+    spendingList.innerHTML = data.spending
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(item => {
+            const [year, month, day] = item.date.split('-');
+            const formattedDate = `${month}/${day}/${year}`;
+            
+            if (item.editing) {
+                return `
+                    <li class="item editing">
+                        <div class="item-details">
+                            <input type="text" id="spending-name-${item.id}" class="edit-name-input" value="${item.name}">
+                            <input type="number" id="spending-amount-${item.id}" class="edit-amount-input" value="${item.amount}" step="0.01" min="0">
+                        </div>
+                        <div class="item-buttons">
+                            <button class="save-btn" onclick="saveSpending(${item.id})">Save</button>
+                            <button class="delete-btn" onclick="deleteSpending(${item.id})">Delete</button>
+                        </div>
+                    </li>
+                `;
+            } else {
+                return `
+                    <li class="item">
+                        <div class="item-details">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-date">${formattedDate}</div>
+                        </div>
+                        <span class="item-amount">$${item.amount.toFixed(2)}</span>
+                        <div class="item-buttons">
+                            <button class="edit-btn" onclick="editSpending(${item.id})">Edit</button>
+                            <button class="delete-btn" onclick="deleteSpending(${item.id})">Delete</button>
+                        </div>
+                    </li>
+                `;
+            }
+        }).join('');
+}
+
+function renderProposedList(available) {
+    const proposedList = document.getElementById('proposedList');
+    let runningBalance = available;
+    const totalProposed = data.proposed.reduce((sum, item) => sum + item.amount, 0);
+    
+    proposedList.innerHTML = data.proposed.map(item => {
+        const canAfford = runningBalance >= item.amount;
+        if (canAfford) runningBalance -= item.amount;
+        
+        if (item.editing) {
+            return `
+                <li class="item proposed-item ${canAfford ? 'can-afford' : 'cannot-afford'} editing">
+                    <div class="item-details">
+                        <input type="text" id="proposed-name-${item.id}" class="edit-name-input" value="${item.name}">
+                        <input type="number" id="proposed-amount-${item.id}" class="edit-amount-input" value="${item.amount}" step="0.01" min="0">
+                    </div>
+                    <div class="item-buttons">
+                        <button class="save-btn" onclick="saveProposed(${item.id})">Save</button>
+                        <button class="delete-btn" onclick="deleteProposed(${item.id})">Delete</button>
+                    </div>
+                </li>
+            `;
+        } else {
+            return `
+                <li class="item proposed-item ${canAfford ? 'can-afford' : 'cannot-afford'}">
+                    <div class="item-details">
+                        <div class="item-name">${item.name}</div>
+                        <span class="afford-status ${canAfford ? 'afford-yes' : 'afford-no'}">
+                            ${canAfford ? '✓ Can Afford' : '✗ Cannot Afford'}
+                        </span>
+                    </div>
+                    <span class="item-amount">$${item.amount.toFixed(2)}</span>
+                    <div class="item-buttons">
+                        <button class="move-btn" onclick="moveProposedToWishlist(${item.id})">→ Wish</button>
+                        <button class="edit-btn" onclick="editProposed(${item.id})">Edit</button>
+                        <button class="delete-btn" onclick="deleteProposed(${item.id})">Delete</button>
+                    </div>
+                </li>
+            `;
+        }
+    }).join('');
+    
+    const remainingAfter = available - totalProposed;
+    document.getElementById('totalProposed').textContent = `$${totalProposed.toFixed(2)}`;
+    document.getElementById('proposedAvailable').textContent = `$${available.toFixed(2)}`;
+    document.getElementById('remainingAfter').textContent = `$${remainingAfter.toFixed(2)}`;
+    document.getElementById('remainingAfter').className = remainingAfter >= 0 ? 'proposed-totals-amount totals-positive' : 'proposed-totals-amount totals-negative';
+}
+
+function renderWishlist() {
+    const categorySelect = document.getElementById('wishlistCategory');
+    categorySelect.innerHTML = '<option value="">Select category...</option>' + 
+        data.wishlistCategories
+            .sort((a, b) => a.order - b.order)
+            .map(cat => `<option value="${cat.id}">${cat.name}</option>`)
+            .join('');
+    
+    const wishlistList = document.getElementById('wishlistList');
+    let wishlistHTML = '';
+    
+    data.wishlistCategories
+        .sort((a, b) => a.order - b.order)
+        .forEach(category => {
+            const categoryItems = data.wishlist.filter(item => item.categoryId === category.id);
+            
+            if (categoryItems.length > 0 || category.id === 1) {
+                const isVisible = categoryVisibility[category.id] !== false;
+                
+                wishlistHTML += `
+                    <div class="category-section">
+                        <div class="category-header">
+                            <div class="category-title" onclick="toggleCategory(${category.id})" style="cursor: pointer; flex: 1;">${category.name} (${categoryItems.length})</div>
+                            <button id="category-toggle-${category.id}" class="toggle-btn" onclick="toggleCategory(${category.id}); event.stopPropagation();" style="padding: 5px 12px; font-size: 0.85em;">${isVisible ? 'Hide' : 'Show'}</button>
+                        </div>
+                        <div id="category-items-${category.id}" class="category-items${isVisible ? '' : ' hidden'}">
+                            ${categoryItems.map(item => {
+                                const categoryOptions = data.wishlistCategories
+                                    .sort((a, b) => a.order - b.order)
+                                    .map(cat => `<option value="${cat.id}" ${cat.id === item.categoryId ? 'selected' : ''}>${cat.name}</option>`)
+                                    .join('');
+                                
+                                if (item.editing) {
+                                    return `
+                                        <div class="item category-item editing">
+                                            <div class="item-details">
+                                                <input type="text" id="wishlist-name-${item.id}" class="edit-name-input" value="${item.name}">
+                                                <input type="number" id="wishlist-amount-${item.id}" class="edit-amount-input" value="${item.amount}" step="0.01" min="0">
+                                            </div>
+                                            <div class="item-buttons">
+                                                <button class="save-btn" onclick="saveWishlist(${item.id})">Save</button>
+                                                <button class="delete-btn" onclick="deleteWishlist(${item.id})">Delete</button>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else {
+                                    return `
+                                        <div class="item category-item">
+                                            <div class="item-details">
+                                                <div class="item-name">${item.name}</div>
+                                                <select onchange="changeItemCategory(${item.id}, this.value)" style="padding: 5px; border: 1px solid #667eea; border-radius: 5px; font-size: 0.85em; margin-top: 5px;">
+                                                    ${categoryOptions}
+                                                </select>
+                                            </div>
+                                            <span class="item-amount">$${item.amount.toFixed(2)}</span>
+                                            <div class="item-buttons">
+                                                <button class="move-btn" onclick="moveWishlistToProposed(${item.id})">→ Proposed</button>
+                                                <button class="edit-btn" onclick="editWishlist(${item.id})">Edit</button>
+                                                <button class="delete-btn" onclick="deleteWishlist(${item.id})">Delete</button>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            }).join('')}
+                            ${categoryItems.length === 0 ? '<div style="padding: 10px; color: #6b7280; font-style: italic;">No items in this category</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    
+    wishlistList.innerHTML = wishlistHTML;
+}
+
+function renderCategoriesManagement() {
+    const categoriesList = document.getElementById('categoriesList');
+    categoriesList.innerHTML = data.wishlistCategories
+        .sort((a, b) => a.order - b.order)
+        .map(cat => {
+            if (cat.editing) {
+                return `
+                    <div class="category-management-item">
+                        <input type="text" id="category-name-${cat.id}" value="${cat.name}" style="flex: 1; padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                        <div class="item-buttons">
+                            <button class="save-btn" onclick="saveCategory(${cat.id})">Save</button>
+                            <button class="delete-btn" onclick="deleteCategory(${cat.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="category-management-item">
+                        <span style="font-weight: bold;">${cat.name}</span>
+                        <div class="item-buttons">
+                            <button class="edit-btn" onclick="editCategory(${cat.id})">Edit</button>
+                            ${cat.id !== 1 ? `<button class="delete-btn" onclick="deleteCategory(${cat.id})">Delete</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+}
+
+function renderAllowanceHistory() {
+    const historyList = document.getElementById('historyList');
+    historyList.innerHTML = data.allowanceHistory
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(item => {
+            if (item.editing) {
+                return `
+                    <li class="item">
+                        <div class="item-details">
+                            <input type="date" id="history-date-${item.id}" value="${item.date}" style="width: 150px;">
+                            <input type="number" id="history-amount-${item.id}" value="${item.amount}" step="0.01" min="0" style="width: 100px;">
+                        </div>
+                        <div class="item-buttons">
+                            <button class="save-btn" onclick="saveAllowanceHistory(${item.id})">Save</button>
+                            <button class="delete-btn" onclick="deleteAllowanceHistory(${item.id})">Delete</button>
+                        </div>
+                    </li>
+                `;
+            } else {
+                const [year, month, day] = item.date.split('-');
+                const formattedDate = `${month}/${day}/${year}`;
+                return `
+                    <li class="item">
+                        <div class="item-details">
+                            <div class="item-name">${formattedDate}: Changed to $${item.amount.toFixed(2)}/day${item.previousAmount !== null ? ` (was $${item.previousAmount.toFixed(2)})` : ''}</div>
+                        </div>
+                        <div class="item-buttons">
+                            <button class="edit-btn" onclick="editAllowanceHistory(${item.id})">Edit</button>
+                            <button class="delete-btn" onclick="deleteAllowanceHistory(${item.id})">Delete</button>
+                        </div>
+                    </li>
+                `;
+            }
+        }).join('');
+}
+
+function renderAllowanceLog() {
+    const allowanceLogList = document.getElementById('allowanceLogList');
+    if (data.allowanceLog.length === 0) {
+        allowanceLogList.innerHTML = '<li class="item"><div class="item-details"><div class="item-name" style="color: #6b7280;">No daily allowance additions yet</div></div></li>';
+    } else {
+        allowanceLogList.innerHTML = data.allowanceLog
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .map(item => {
+                const [year, month, day] = item.date.split('-');
+                const formattedDate = `${month}/${day}/${year}`;
+                
+                if (item.editing) {
+                    return `
+                        <li class="item log-item editing">
+                            <div class="item-details">
+                                <input type="date" id="log-date-${item.id}" value="${item.date}" style="padding: 5px; border: 2px solid #667eea; border-radius: 5px; font-size: 0.9em;">
+                                <input type="number" id="log-amount-${item.id}" value="${item.amountAdded}" step="0.01" min="0" style="width: 120px; padding: 5px; border: 2px solid #667eea; border-radius: 5px; font-size: 0.9em;" placeholder="Amount">
+                            </div>
+                            <div class="item-buttons">
+                                <button class="save-btn" onclick="saveAllowanceLog(${item.id})">Save</button>
+                                <button class="delete-btn" onclick="deleteAllowanceLog(${item.id})">Delete</button>
+                            </div>
+                        </li>
+                    `;
+                } else {
+                    const typeLabel = item.manualEntry ? '<span style="color: #f59e0b; font-size: 0.85em;"> (Manual)</span>' : 
+                                    item.autoGenerated ? '<span style="color: #10b981; font-size: 0.85em;"> (Auto)</span>' : '';
+                    
+                    return `
+                        <li class="item log-item">
+                            <div class="item-details">
+                                <div class="item-name">${formattedDate}${typeLabel}</div>
+                                <div class="item-date">Added: $${item.amountAdded.toFixed(2)} → Total Accumulated: $${item.newAccumulated.toFixed(2)}</div>
+                            </div>
+                            <div class="item-buttons">
+                                <button class="edit-btn" onclick="editAllowanceLog(${item.id})">Edit</button>
+                                <button class="delete-btn" onclick="deleteAllowanceLog(${item.id})">Delete</button>
+                            </div>
+                        </li>
+                    `;
+                }
+            }).join('');
+    }
+}
+
+// Initialize on page load
+console.log('Allowance Tracker app loaded - waiting for auth...');
