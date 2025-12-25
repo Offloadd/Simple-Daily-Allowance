@@ -10,6 +10,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+console.log('Initializing Firebase...');
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -19,8 +20,13 @@ window.auth = auth;
 window.db = db;
 window.currentUser = null;
 
+console.log('Firebase initialized successfully');
+console.log('Auth object:', auth);
+console.log('DB object:', db);
+
 // Auth state listener
 auth.onAuthStateChanged(user => {
+    console.log('Auth state changed:', user ? user.email : 'No user');
     if (user) {
         console.log('User authenticated:', user.email);
         document.getElementById('authSection').style.display = 'none';
