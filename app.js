@@ -375,13 +375,12 @@ function updateSettings() {
 // ============================================================================
 
 function getPSTDate() {
+    // Just get today's date in local time
     const now = new Date();
-    const pstOffset = -8 * 60;
-    const localOffset = now.getTimezoneOffset();
-    const pstTime = new Date(now.getTime() + (localOffset - pstOffset) * 60 * 1000);
-    
-    // Just return today's actual date in PST, don't add a day
-    return pstTime.toISOString().split('T')[0];
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // ============================================================================
