@@ -380,12 +380,8 @@ function getPSTDate() {
     const localOffset = now.getTimezoneOffset();
     const pstTime = new Date(now.getTime() + (localOffset - pstOffset) * 60 * 1000);
     
-    let currentDay = new Date(pstTime);
-    if (pstTime.getHours() < 5) {
-        currentDay.setDate(currentDay.getDate() - 1);
-    }
-    
-    return currentDay.toISOString().split('T')[0];
+    // Just return today's actual date in PST, don't add a day
+    return pstTime.toISOString().split('T')[0];
 }
 
 // ============================================================================
