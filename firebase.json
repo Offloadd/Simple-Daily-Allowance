@@ -1,7 +1,4 @@
 {
-  "projects": {
-    "default": "offload---self-help-tools"
-  },
   "hosting": {
     "public": ".",
     "ignore": [
