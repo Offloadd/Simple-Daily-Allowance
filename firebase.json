@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "dailyallowance",
     "public": ".",
     "ignore": [
       "firebase.json",
