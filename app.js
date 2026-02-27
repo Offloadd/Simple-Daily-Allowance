@@ -1340,5 +1340,96 @@ function renderColorScheme() {
     }).join('');
 }
 
+// ============================================================================
+// TIMELINE CSV EXPORT
+// Generates a CSV compatible with the Timeline Viewer.
+// Columns: Date, Type, Amount, Item, Balance
+// One row per spending event and one row per allowance addition, in date order.
+// ============================================================================
+
+function exportTimelineCSV() {
+    const events = [];
+
+    // Add spending events
+    (data.spending || []).forEach(s => {
+        if (!s.date) return;
+        events.push({
+            date:   s.date,
+            type:   'spend',
+            amount: s.amount,
+            item:   s.name || ''
+        });
+    });
+
+    // Add allowance addition events
+    (data.allowanceLog || []).forEach(l => {
+        if (!l.date) return;
+        events.push({
+            date:   l.date,
+            type:   'allowance',
+            amount: l.amountAdded,
+            item:   `+$${l.amountAdded.toFixed(2)}/day`
+        });
+    });
+
+    if (events.length === 0) {
+        alert('No spending or allowance data to export yet.');
+        return;
+    }
+
+    // Sort chronologically — allowance additions before spending on same day
+    // so the balance reflects the credit before the spend
+    events.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        if (a.type === 'allowance' && b.type !== 'allowance') return -1;
+        if (b.type === 'allowance' && a.type !== 'allowance') return  1;
+        return 0;
+    });
+
+    // Calculate running balance for each event
+    let runningAccumulated = 0;
+    let runningSpent       = 0;
+    events.forEach(e => {
+        if (e.type === 'allowance') {
+            runningAccumulated += e.amount;
+        } else {
+            runningSpent += e.amount;
+        }
+        e.balance = runningAccumulated - runningSpent;
+    });
+
+    // Build CSV
+    const escapeCSV = val => {
+        const s = String(val);
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+            ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    let csv = 'Date,Type,Amount,Item,Balance\n';
+    events.forEach(e => {
+        csv += [
+            escapeCSV(e.date),
+            escapeCSV(e.type),
+            escapeCSV(e.amount.toFixed(2)),
+            escapeCSV(e.item),
+            escapeCSV(e.balance.toFixed(2))
+        ].join(',') + '\n';
+    });
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(csv).then(() => {
+        alert(`✅ Timeline CSV copied to clipboard!\n${events.length} events exported.\n\nPaste it into the Allowance section of the Timeline Viewer.`);
+    }).catch(() => {
+        // Fallback: show in a textarea so the user can manually copy
+        const ta = document.createElement('textarea');
+        ta.value = csv;
+        ta.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);width:600px;height:300px;z-index:9999;font-family:monospace;font-size:12px;padding:10px;border:2px solid #667eea;border-radius:8px;';
+        document.body.appendChild(ta);
+        ta.select();
+        alert('Clipboard access blocked. The CSV is selected below — press Ctrl+C (or Cmd+C) to copy, then close this box.');
+        ta.addEventListener('blur', () => document.body.removeChild(ta));
+    });
+}
+
 // Initialize on page load
 console.log('Allowance Tracker app loaded - waiting for auth...');
