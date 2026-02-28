@@ -23,23 +23,11 @@
         
         <!-- Main App (hidden until authenticated) -->
         <div id="appSection" style="display: none;">
-            <div class="user-info">
-                <span id="userEmail"></span>
-                <button onclick="signOut()" class="sign-out-btn">Sign Out</button>
-            </div>
             
             <!-- Balance Overview -->
             <div class="balance-section">
                 <h2 style="color: white; margin: 0 0 10px 0;">Your Balance</h2>
-                <div class="balance-grid">
-                    <div class="balance-item">
-                        <div class="balance-label">Total Accumulated</div>
-                        <div class="balance-amount" id="totalAccumulated">$0.00</div>
-                    </div>
-                    <div class="balance-item">
-                        <div class="balance-label">Total Spent</div>
-                        <div class="balance-amount" id="totalSpent">$0.00</div>
-                    </div>
+                <div class="balance-grid" style="grid-template-columns: 1fr;">
                     <div class="balance-item">
                         <div class="balance-label">Available Balance</div>
                         <div class="balance-amount" id="availableBalance">$0.00</div>
@@ -47,12 +35,7 @@
                 </div>
             </div>
             
-            <!-- Export Timeline CSV -->
-            <div style="text-align: right; margin-bottom: 20px;">
-                <button onclick="exportTimelineCSV()" style="background: #10b981; font-size: 0.9em; padding: 8px 18px;">
-                    📋 Copy Timeline CSV
-                </button>
-            </div>
+            <!-- Proposed Purchases -->
             <div class="proposed-section">
                 <h2>
                     <span>🛒 Proposed Purchases</span>
@@ -143,6 +126,19 @@
                     <button class="toggle-btn" onclick="toggleSection('settings')">Hide</button>
                 </h2>
                 <div id="settingsContent" class="collapsible-content">
+
+                    <!-- Running Totals -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <div class="balance-item" style="background: #f3f4f6; border-radius: 10px; padding: 15px; flex: 1; min-width: 150px;">
+                            <div class="balance-label" style="color: #6b7280; font-size: 0.9em; margin-bottom: 5px;">Total Accumulated</div>
+                            <div class="balance-amount" id="totalAccumulated" style="font-size: 1.4em; font-weight: bold; color: #667eea;">$0.00</div>
+                        </div>
+                        <div class="balance-item" style="background: #f3f4f6; border-radius: 10px; padding: 15px; flex: 1; min-width: 150px;">
+                            <div class="balance-label" style="color: #6b7280; font-size: 0.9em; margin-bottom: 5px;">Total Spent</div>
+                            <div class="balance-amount" id="totalSpent" style="font-size: 1.4em; font-weight: bold; color: #667eea;">$0.00</div>
+                        </div>
+                    </div>
+
                     <div class="input-group">
                         <label style="display: flex; align-items: center; gap: 10px; flex: 1;">
                             <span style="white-space: nowrap;">Daily Allowance: $</span>
@@ -154,73 +150,79 @@
                         </label>
                         <button onclick="updateSettings()">Update Settings</button>
                     </div>
+
+                    <!-- Allowance History -->
+                    <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
+                            <span>📋 Allowance Change History</span>
+                            <button class="toggle-btn" onclick="toggleSection('allowanceHistory')">Hide</button>
+                        </h3>
+                        <div id="allowanceHistoryContent" class="collapsible-content">
+                            <div class="input-group">
+                                <input type="date" id="historyDate" placeholder="Date">
+                                <input type="number" id="historyAmount" placeholder="Amount per day" step="0.01" min="0">
+                                <button onclick="addAllowanceHistory()">Add Entry</button>
+                            </div>
+                            <ul class="item-list" id="historyList"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Daily Allowance Addition Log -->
+                    <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
+                            <span>📊 Daily Allowance Addition Log</span>
+                            <button class="toggle-btn" onclick="toggleSection('allowanceLog')">Hide</button>
+                        </h3>
+                        <div id="allowanceLogContent" class="collapsible-content">
+                            <div class="input-group">
+                                <input type="date" id="logDate" placeholder="Date">
+                                <input type="number" id="logAmount" placeholder="Amount added that day" step="0.01" min="0">
+                                <button onclick="addAllowanceLog()">Add Log Entry</button>
+                            </div>
+                            <ul class="item-list" id="allowanceLogList"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Color Scheme Editor -->
+                    <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🎨 Available Balance Color Scheme</span>
+                            <button class="toggle-btn" onclick="toggleSection('colorScheme')">Hide</button>
+                        </h3>
+                        <div id="colorSchemeContent" class="collapsible-content">
+                            <p style="color: #6b7280; font-size: 0.9em; margin-bottom: 15px;">
+                                Set custom colors for different balance ranges. The Available Balance will change color based on your current balance.
+                            </p>
+                            <!-- Positive Ranges -->
+                            <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1em;">Positive Balance Ranges</h3>
+                            <div class="input-group">
+                                <input type="number" id="positiveMin" placeholder="Min ($)" step="0.01" min="0" style="width: 100px;">
+                                <input type="number" id="positiveMax" placeholder="Max ($)" step="0.01" min="0" style="width: 100px;">
+                                <input type="color" id="positiveColor" value="#10b981" style="width: 60px; height: 40px;">
+                                <button onclick="addColorRange('positive')">Add Range</button>
+                            </div>
+                            <ul class="item-list" id="positiveRangesList"></ul>
+                            <!-- Negative Ranges -->
+                            <h3 style="color: #667eea; margin: 20px 0 10px 0; font-size: 1em;">Negative Balance Ranges</h3>
+                            <div class="input-group">
+                                <input type="number" id="negativeMin" placeholder="Min ($)" step="0.01" max="0" style="width: 100px;">
+                                <input type="number" id="negativeMax" placeholder="Max ($)" step="0.01" max="0" style="width: 100px;">
+                                <input type="color" id="negativeColor" value="#ef4444" style="width: 60px; height: 40px;">
+                                <button onclick="addColorRange('negative')">Add Range</button>
+                            </div>
+                            <ul class="item-list" id="negativeRangesList"></ul>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-            
-            <!-- Allowance History -->
-            <div class="settings-section">
-                <h2>
-                    <span>📋 Allowance Change History</span>
-                    <button class="toggle-btn" onclick="toggleSection('allowanceHistory')">Hide</button>
-                </h2>
-                <div id="allowanceHistoryContent" class="collapsible-content">
-                    <div class="input-group">
-                        <input type="date" id="historyDate" placeholder="Date">
-                        <input type="number" id="historyAmount" placeholder="Amount per day" step="0.01" min="0">
-                        <button onclick="addAllowanceHistory()">Add Entry</button>
-                    </div>
-                    <ul class="item-list" id="historyList"></ul>
-                </div>
+
+            <!-- User Info -->
+            <div class="user-info" style="margin-top: 30px;">
+                <span id="userEmail"></span>
+                <button onclick="signOut()" class="sign-out-btn">Sign Out</button>
             </div>
-            
-            <!-- Daily Allowance Addition Log -->
-            <div class="settings-section">
-                <h2>
-                    <span>📊 Daily Allowance Addition Log</span>
-                    <button class="toggle-btn" onclick="toggleSection('allowanceLog')">Hide</button>
-                </h2>
-                <div id="allowanceLogContent" class="collapsible-content">
-                    <div class="input-group">
-                        <input type="date" id="logDate" placeholder="Date">
-                        <input type="number" id="logAmount" placeholder="Amount added that day" step="0.01" min="0">
-                        <button onclick="addAllowanceLog()">Add Log Entry</button>
-                    </div>
-                    <ul class="item-list" id="allowanceLogList"></ul>
-                </div>
-            </div>
-            
-            <!-- Color Scheme Editor -->
-            <div class="settings-section">
-                <h2>
-                    <span>🎨 Available Balance Color Scheme</span>
-                    <button class="toggle-btn" onclick="toggleSection('colorScheme')">Hide</button>
-                </h2>
-                <div id="colorSchemeContent" class="collapsible-content">
-                    <p style="color: #6b7280; font-size: 0.9em; margin-bottom: 15px;">
-                        Set custom colors for different balance ranges. The Available Balance will change color based on your current balance.
-                    </p>
-                    
-                    <!-- Positive Ranges -->
-                    <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1.1em;">Positive Balance Ranges</h3>
-                    <div class="input-group">
-                        <input type="number" id="positiveMin" placeholder="Min ($)" step="0.01" min="0" style="width: 100px;">
-                        <input type="number" id="positiveMax" placeholder="Max ($)" step="0.01" min="0" style="width: 100px;">
-                        <input type="color" id="positiveColor" value="#10b981" style="width: 60px; height: 40px;">
-                        <button onclick="addColorRange('positive')">Add Range</button>
-                    </div>
-                    <ul class="item-list" id="positiveRangesList"></ul>
-                    
-                    <!-- Negative Ranges -->
-                    <h3 style="color: #667eea; margin: 20px 0 10px 0; font-size: 1.1em;">Negative Balance Ranges</h3>
-                    <div class="input-group">
-                        <input type="number" id="negativeMin" placeholder="Min ($)" step="0.01" max="0" style="width: 100px;">
-                        <input type="number" id="negativeMax" placeholder="Max ($)" step="0.01" max="0" style="width: 100px;">
-                        <input type="color" id="negativeColor" value="#ef4444" style="width: 60px; height: 40px;">
-                        <button onclick="addColorRange('negative')">Add Range</button>
-                    </div>
-                    <ul class="item-list" id="negativeRangesList"></ul>
-                </div>
-            </div>
+
         </div>
     </div>
     
