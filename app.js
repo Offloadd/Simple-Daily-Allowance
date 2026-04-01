@@ -1096,11 +1096,13 @@ function renderWishlist() {
             
             if (categoryItems.length > 0 || category.id === 1) {
                 const isVisible = data.categoryVisibility[category.id] !== false;
+                const categoryTotal = categoryItems.reduce((sum, item) => sum + item.amount, 0);
                 
                 wishlistHTML += `
                     <div class="category-section">
                         <div class="category-header">
                             <div class="category-title" onclick="toggleCategory(${category.id})" style="cursor: pointer; flex: 1;">${category.name} (${categoryItems.length})</div>
+                            <span style="font-weight: 600; color: #667eea; margin-right: 10px;">$${categoryTotal.toFixed(2)}</span>
                             <button id="category-toggle-${category.id}" class="toggle-btn" onclick="toggleCategory(${category.id}); event.stopPropagation();" style="padding: 5px 12px; font-size: 0.85em;">${isVisible ? 'Hide' : 'Show'}</button>
                         </div>
                         <div id="category-items-${category.id}" class="category-items${isVisible ? '' : ' hidden'}">
