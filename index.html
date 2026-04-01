@@ -62,36 +62,36 @@
                 </div>
             </div>
             
-            <!-- Wish List -->
+            <!-- Non Monthlies -->
             <div class="wishlist-section">
                 <h2>
-                    <span>⭐ Wish List</span>
+                    <span>⭐ Non Monthlies</span>
                     <button class="toggle-btn" onclick="toggleSection('wishList')">Hide</button>
                 </h2>
                 <div id="wishListContent" class="collapsible-content">
-                    <!-- Add Wishlist Item -->
+                    <!-- Add Item -->
                     <div class="input-group">
-                        <input type="text" id="wishlistName" placeholder="What would you like someday?">
-                        <input type="number" id="wishlistAmount" placeholder="Estimated cost" step="0.01" min="0">
+                        <input type="text" id="wishlistName" placeholder="Item name">
+                        <input type="number" id="wishlistAmount" placeholder="Amount" step="0.01" min="0">
                         <select id="wishlistCategory" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1em;">
-                            <option value="">Select category...</option>
+                            <option value="">Select month...</option>
                         </select>
-                        <button onclick="addWishlist()">Add to Wish List</button>
+                        <button onclick="addWishlist()">Add Item</button>
                     </div>
                     
                     <!-- Wishlist Items by Category -->
                     <div id="wishlistList"></div>
                     
-                    <!-- Category Management -->
+                    <!-- Month Management -->
                     <div style="margin-top: 30px;">
                         <h3 style="color: #667eea; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                            <span>Manage Categories</span>
+                            <span>Manage Months</span>
                             <button class="toggle-btn" onclick="toggleSection('categoryManagement')">Hide</button>
                         </h3>
                         <div id="categoryManagementContent" class="collapsible-content">
                             <div class="input-group" style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <input type="text" id="newCategoryName" placeholder="New category name">
-                                <button onclick="addCategory()">Add Category</button>
+                                <input type="text" id="newCategoryName" placeholder="New month name">
+                                <button onclick="addCategory()">Add Month</button>
                             </div>
                             <div id="categoriesList"></div>
                         </div>
