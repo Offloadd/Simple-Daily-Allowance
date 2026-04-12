@@ -116,6 +116,66 @@
                 </div>
             </div>
             
+            <!-- Income Tracker -->
+            <div class="settings-section">
+                <h2>
+                    <span>📈 Income Tracker</span>
+                    <button class="toggle-btn" onclick="toggleSection('incomeTracker')">Hide</button>
+                </h2>
+                <div id="incomeTrackerContent" class="collapsible-content">
+
+                    <!-- Stats -->
+                    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:20px;">
+                        <div style="background:#f3f4f6; border-radius:10px; padding:15px; flex:1; min-width:140px;">
+                            <div style="color:#6b7280; font-size:0.8em; margin-bottom:5px;">Bank Total</div>
+                            <div id="it-bankTotal" style="font-size:1.4em; font-weight:bold; color:#667eea;">$0.00</div>
+                            <div id="it-entryCount" style="color:#9ca3af; font-size:0.75em; margin-top:3px;">0 entries</div>
+                        </div>
+                        <div style="background:#f3f4f6; border-radius:10px; padding:15px; flex:1; min-width:140px;">
+                            <div style="color:#6b7280; font-size:0.8em; margin-bottom:5px;">Bank ÷ 365</div>
+                            <div id="it-bankDaily" style="font-size:1.4em; font-weight:bold; color:#667eea;">$0.00</div>
+                            <div style="color:#9ca3af; font-size:0.75em; margin-top:3px;">daily from bank</div>
+                        </div>
+                        <div style="background:#f3f4f6; border-radius:10px; padding:15px; flex:1; min-width:140px;">
+                            <div style="color:#6b7280; font-size:0.8em; margin-bottom:5px;">Combined ÷ 365</div>
+                            <div id="it-combinedDaily" style="font-size:1.4em; font-weight:bold; color:#10b981;">$0.00</div>
+                            <div style="color:#9ca3af; font-size:0.75em; margin-top:3px;">bank + billable</div>
+                        </div>
+                        <div style="background:#f3f4f6; border-radius:10px; padding:15px; flex:1; min-width:140px;">
+                            <div style="color:#6b7280; font-size:0.8em; margin-bottom:5px;">Billable Total</div>
+                            <input type="number" id="it-billableTotal" placeholder="0.00" step="0.01" min="0"
+                                oninput="saveIncomeBillable()"
+                                style="width:100%; border:1px solid #e5e7eb; border-radius:6px; padding:4px 8px; font-size:1em; color:#667eea; font-weight:bold; margin-top:2px;">
+                        </div>
+                    </div>
+
+                    <!-- Year Progress -->
+                    <div style="background:#f3f4f6; border-radius:10px; padding:15px; margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.8em; color:#6b7280; margin-bottom:8px;">
+                            <span>Year Progress</span>
+                            <span id="it-yearProgress">0%</span>
+                        </div>
+                        <div style="height:6px; background:#e5e7eb; border-radius:3px; overflow:hidden;">
+                            <div id="it-progressFill" style="height:100%; background:linear-gradient(90deg,#667eea,#10b981); border-radius:3px; width:0%; transition:width 0.5s;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Add Entry -->
+                    <div class="input-group" style="margin-bottom:15px;">
+                        <input type="text" id="it-source" placeholder="Source (e.g. ESAM, client…)">
+                        <input type="number" id="it-amount" placeholder="Amount" step="0.01" min="0">
+                        <input type="date" id="it-date">
+                        <input type="text" id="it-note" placeholder="Note (optional)">
+                        <button onclick="addIncomeEntry()">+ Add</button>
+                    </div>
+
+                    <!-- Log Table -->
+                    <div id="it-empty" style="color:#9ca3af; font-style:italic; padding:10px 0; display:none;">No entries yet.</div>
+                    <ul class="item-list" id="it-logList"></ul>
+
+                </div>
+            </div>
+
             <!-- Settings -->
             <div class="settings-section">
                 <h2>
