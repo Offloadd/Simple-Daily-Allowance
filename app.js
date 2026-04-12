@@ -232,6 +232,7 @@ async function loadUserData() {
         document.getElementById('dailyAllowance').value = data.dailyAllowance;
         document.getElementById('startDate').value = data.startDate;
         document.getElementById('spendingDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('it-date').value = new Date().toISOString().split('T')[0];
         
         updateDisplay();
     } catch (error) {
@@ -301,9 +302,12 @@ function getDefaultData() {
             allowanceHistory: true,
             allowanceLog: true,
             categoryManagement: true,
-            colorScheme: true
+            colorScheme: true,
+            incomeTracker: true
         },
-        categoryVisibility: {}
+        categoryVisibility: {},
+        incomeEntries: [],
+        billableTotal: 0
     };
 }
 
@@ -328,7 +332,8 @@ function updateSectionVisibility() {
         { name: 'allowanceHistory', contentId: 'allowanceHistoryContent' },
         { name: 'allowanceLog', contentId: 'allowanceLogContent' },
         { name: 'categoryManagement', contentId: 'categoryManagementContent' },
-        { name: 'colorScheme', contentId: 'colorSchemeContent' }
+        { name: 'colorScheme', contentId: 'colorSchemeContent' },
+        { name: 'incomeTracker', contentId: 'incomeTrackerContent' }
     ];
     
     sections.forEach(section => {
@@ -985,6 +990,9 @@ function updateDisplay() {
     
     // Update color scheme
     renderColorScheme();
+
+    // Update income tracker
+    renderIncomeTracker();
     
     // Update section visibility
     updateSectionVisibility();
@@ -1435,3 +1443,95 @@ function exportTimelineCSV() {
 
 // Initialize on page load
 console.log('Allowance Tracker app loaded - waiting for auth...');
+// ============================================================================
+// INCOME TRACKER FUNCTIONS
+// ============================================================================
+
+function addIncomeEntry() {
+    const source = document.getElementById('it-source').value.trim();
+    const amount = parseFloat(document.getElementById('it-amount').value);
+    const date   = document.getElementById('it-date').value;
+    const note   = document.getElementById('it-note').value.trim();
+
+    if (!source) { alert('Please enter a source.'); return; }
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+    if (!date) { alert('Please select a date.'); return; }
+
+    if (!data.incomeEntries) data.incomeEntries = [];
+    data.incomeEntries.push({ id: Date.now().toString(), source, amount, date, note });
+
+    document.getElementById('it-source').value = '';
+    document.getElementById('it-amount').value = '';
+    document.getElementById('it-note').value = '';
+
+    saveAndUpdate();
+}
+
+function deleteIncomeEntry(id) {
+    data.incomeEntries = (data.incomeEntries || []).filter(e => e.id !== id);
+    saveAndUpdate();
+}
+
+function saveIncomeBillable() {
+    data.billableTotal = parseFloat(document.getElementById('it-billableTotal').value) || 0;
+    saveData();
+    renderIncomeTracker();
+}
+
+function renderIncomeTracker() {
+    const entries  = data.incomeEntries || [];
+    const billable = data.billableTotal || 0;
+    const bankTotal     = entries.reduce((s, e) => s + e.amount, 0);
+    const bankDaily     = bankTotal / 365;
+    const combinedDaily = (bankTotal + billable) / 365;
+
+    document.getElementById('it-bankTotal').textContent     = `$${bankTotal.toFixed(2)}`;
+    document.getElementById('it-bankDaily').textContent     = `$${bankDaily.toFixed(2)}`;
+    document.getElementById('it-combinedDaily').textContent = `$${combinedDaily.toFixed(2)}`;
+    document.getElementById('it-entryCount').textContent    = `${entries.length} entr${entries.length===1?'y':'ies'}`;
+
+    // Billable input — only set if not focused
+    const billableInput = document.getElementById('it-billableTotal');
+    if (document.activeElement !== billableInput) {
+        billableInput.value = billable || '';
+    }
+
+    // Year progress
+    const now   = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end   = new Date(now.getFullYear() + 1, 0, 1);
+    const pct   = Math.round(((now - start) / (end - start)) * 100);
+    document.getElementById('it-yearProgress').textContent  = pct + '%';
+    document.getElementById('it-progressFill').style.width  = pct + '%';
+
+    // Log list
+    const list  = document.getElementById('it-logList');
+    const empty = document.getElementById('it-empty');
+
+    if (entries.length === 0) {
+        empty.style.display = '';
+        list.innerHTML = '';
+        return;
+    }
+    empty.style.display = 'none';
+
+    const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+    list.innerHTML = sorted.map(e => `
+        <li class="item">
+            <div class="item-details">
+                <div class="item-name">${e.source}${e.note ? ' <span style="color:#9ca3af;font-size:0.85em;">— ' + e.note + '</span>' : ''}</div>
+                <div style="color:#9ca3af; font-size:0.8em;">${formatIncomeDate(e.date)}</div>
+            </div>
+            <span class="item-amount">$${e.amount.toFixed(2)}</span>
+            <div class="item-buttons">
+                <button class="delete-btn" onclick="deleteIncomeEntry('${e.id}')">Delete</button>
+            </div>
+        </li>`).join('');
+}
+
+function formatIncomeDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`;
+}
