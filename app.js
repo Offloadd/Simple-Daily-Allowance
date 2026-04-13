@@ -303,11 +303,18 @@ function getDefaultData() {
             allowanceLog: true,
             categoryManagement: true,
             colorScheme: true,
-            incomeTracker: true
+            incomeTracker: true,
+            bizExpenses: true,
+            bizCategoryManagement: true
         },
         categoryVisibility: {},
         incomeEntries: [],
-        billableTotal: 0
+        billableTotal: 0,
+        bizExpenses: [],
+        bizExpenseCategories: [
+            { id: 1, name: 'Unassigned', order: 0 }
+        ],
+        bizCategoryVisibility: {}
     };
 }
 
@@ -333,7 +340,9 @@ function updateSectionVisibility() {
         { name: 'allowanceLog', contentId: 'allowanceLogContent' },
         { name: 'categoryManagement', contentId: 'categoryManagementContent' },
         { name: 'colorScheme', contentId: 'colorSchemeContent' },
-        { name: 'incomeTracker', contentId: 'incomeTrackerContent' }
+        { name: 'incomeTracker', contentId: 'incomeTrackerContent' },
+        { name: 'bizExpenses', contentId: 'bizExpensesContent' },
+        { name: 'bizCategoryManagement', contentId: 'bizCategoryManagementContent' }
     ];
     
     sections.forEach(section => {
@@ -993,6 +1002,9 @@ function updateDisplay() {
 
     // Update income tracker
     renderIncomeTracker();
+
+    // Update business expenses
+    renderBizExpenses();
     
     // Update section visibility
     updateSectionVisibility();
@@ -1534,4 +1546,185 @@ function formatIncomeDate(d) {
     const [y, m, day] = d.split('-');
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`;
+}
+
+// ============================================================================
+// BUSINESS EXPENSES FUNCTIONS
+// ============================================================================
+
+function addBizExpense() {
+    const name       = document.getElementById('bizExpenseName').value.trim();
+    const amount     = parseFloat(document.getElementById('bizExpenseAmount').value);
+    const categoryId = parseInt(document.getElementById('bizExpenseCategory').value);
+
+    if (!name || !amount || amount <= 0 || !categoryId) {
+        alert('Please fill in all fields including category');
+        return;
+    }
+
+    if (!data.bizExpenses) data.bizExpenses = [];
+    data.bizExpenses.push({ id: Date.now(), name, amount, categoryId });
+
+    document.getElementById('bizExpenseName').value    = '';
+    document.getElementById('bizExpenseAmount').value  = '';
+    document.getElementById('bizExpenseCategory').value = '';
+
+    saveAndUpdate();
+}
+
+function deleteBizExpense(id) {
+    data.bizExpenses = (data.bizExpenses || []).filter(item => item.id !== id);
+    saveAndUpdate();
+}
+
+function editBizExpense(id) {
+    const item = (data.bizExpenses || []).find(i => i.id === id);
+    if (item) { item.editing = true; updateDisplay(); }
+}
+
+function saveBizExpense(id) {
+    const item       = (data.bizExpenses || []).find(i => i.id === id);
+    const nameInput  = document.getElementById(`biz-name-${id}`);
+    const amtInput   = document.getElementById(`biz-amount-${id}`);
+    const newName    = nameInput ? nameInput.value.trim() : '';
+    const newAmount  = amtInput  ? parseFloat(amtInput.value) : NaN;
+
+    if (!newName || isNaN(newAmount) || newAmount <= 0) {
+        alert('Please enter a valid name and amount');
+        return;
+    }
+    item.name    = newName;
+    item.amount  = newAmount;
+    item.editing = false;
+    saveAndUpdate();
+}
+
+function addBizCategory() {
+    const name = document.getElementById('newBizCategoryName').value.trim();
+    if (!name) { alert('Please enter a category name'); return; }
+
+    if (!data.bizExpenseCategories) data.bizExpenseCategories = [{ id: 1, name: 'Unassigned', order: 0 }];
+    const newId = Math.max(...data.bizExpenseCategories.map(c => c.id), 0) + 1;
+    data.bizExpenseCategories.push({ id: newId, name, order: data.bizExpenseCategories.length });
+    document.getElementById('newBizCategoryName').value = '';
+    saveAndUpdate();
+}
+
+function deleteBizCategory(id) {
+    if (id === 1) { alert('Cannot delete the Unassigned category'); return; }
+    if (!data.bizExpenses) data.bizExpenses = [];
+    data.bizExpenses.forEach(item => { if (item.categoryId === id) item.categoryId = 1; });
+    data.bizExpenseCategories = data.bizExpenseCategories.filter(c => c.id !== id);
+    saveAndUpdate();
+}
+
+function toggleBizCategory(categoryId) {
+    if (!data.bizCategoryVisibility) data.bizCategoryVisibility = {};
+    const el  = document.getElementById(`biz-cat-items-${categoryId}`);
+    const btn = document.getElementById(`biz-cat-toggle-${categoryId}`);
+    const isHidden = el.classList.contains('hidden');
+    el.classList.toggle('hidden');
+    btn.textContent = isHidden ? 'Hide' : 'Show';
+    data.bizCategoryVisibility[categoryId] = isHidden;
+    saveData();
+}
+
+function changeBizItemCategory(itemId, newCategoryId) {
+    const item = (data.bizExpenses || []).find(i => i.id === itemId);
+    if (item) { item.categoryId = parseInt(newCategoryId); saveAndUpdate(); }
+}
+
+function renderBizExpenses() {
+    if (!data.bizExpenseCategories) data.bizExpenseCategories = [{ id: 1, name: 'Unassigned', order: 0 }];
+    if (!data.bizExpenses)          data.bizExpenses = [];
+    if (!data.bizCategoryVisibility) data.bizCategoryVisibility = {};
+
+    // Populate category select
+    const select = document.getElementById('bizExpenseCategory');
+    select.innerHTML = '<option value="">Select category...</option>' +
+        data.bizExpenseCategories
+            .sort((a, b) => a.order - b.order)
+            .map(c => `<option value="${c.id}">${c.name}</option>`)
+            .join('');
+
+    // Render items grouped by category
+    const list = document.getElementById('bizExpenseList');
+    let html = '';
+
+    data.bizExpenseCategories
+        .sort((a, b) => a.order - b.order)
+        .forEach(cat => {
+            const items     = data.bizExpenses.filter(i => i.categoryId === cat.id);
+            const catTotal  = items.reduce((s, i) => s + i.amount, 0);
+            const isVisible = data.bizCategoryVisibility[cat.id] !== false;
+
+            if (items.length > 0 || cat.id === 1) {
+                const categoryOptions = data.bizExpenseCategories
+                    .sort((a, b) => a.order - b.order)
+                    .map(c => `<option value="${c.id}">${c.name}</option>`)
+                    .join('');
+
+                html += `
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="category-title" onclick="toggleBizCategory(${cat.id})" style="cursor:pointer;flex:1;">${cat.name} (${items.length})</div>
+                        <span style="font-weight:600;color:#667eea;margin-right:10px;">$${catTotal.toFixed(2)}</span>
+                        <button id="biz-cat-toggle-${cat.id}" class="toggle-btn" onclick="toggleBizCategory(${cat.id});event.stopPropagation();" style="padding:5px 12px;font-size:0.85em;">${isVisible ? 'Hide' : 'Show'}</button>
+                    </div>
+                    <div id="biz-cat-items-${cat.id}" class="category-items${isVisible ? '' : ' hidden'}">
+                        ${items.map(item => {
+                            const catOpts = data.bizExpenseCategories
+                                .sort((a,b) => a.order - b.order)
+                                .map(c => `<option value="${c.id}" ${c.id === item.categoryId ? 'selected' : ''}>${c.name}</option>`)
+                                .join('');
+                            if (item.editing) {
+                                return `
+                                <div class="item category-item editing">
+                                    <div class="item-details">
+                                        <input type="text" id="biz-name-${item.id}" class="edit-name-input" value="${item.name}">
+                                        <input type="number" id="biz-amount-${item.id}" class="edit-amount-input" value="${item.amount}" step="0.01" min="0">
+                                    </div>
+                                    <div class="item-buttons">
+                                        <button class="save-btn" onclick="saveBizExpense(${item.id})">Save</button>
+                                        <button class="delete-btn" onclick="deleteBizExpense(${item.id})">Delete</button>
+                                    </div>
+                                </div>`;
+                            } else {
+                                return `
+                                <div class="item category-item">
+                                    <div class="item-details">
+                                        <div class="item-name">${item.name}</div>
+                                        <select onchange="changeBizItemCategory(${item.id}, this.value)" style="padding:5px;border:1px solid #667eea;border-radius:5px;font-size:0.85em;margin-top:5px;">
+                                            ${catOpts}
+                                        </select>
+                                    </div>
+                                    <span class="item-amount">$${item.amount.toFixed(2)}</span>
+                                    <div class="item-buttons">
+                                        <button class="edit-btn" onclick="editBizExpense(${item.id})">Edit</button>
+                                        <button class="delete-btn" onclick="deleteBizExpense(${item.id})">Delete</button>
+                                    </div>
+                                </div>`;
+                            }
+                        }).join('')}
+                        ${items.length === 0 ? '<div style="padding:10px;color:#6b7280;font-style:italic;">No items in this category</div>' : ''}
+                    </div>
+                </div>`;
+            }
+        });
+
+    list.innerHTML = html;
+
+    // Render category management list
+    const mgmtList = document.getElementById('bizCategoriesList');
+    if (mgmtList) {
+        mgmtList.innerHTML = data.bizExpenseCategories
+            .sort((a, b) => a.order - b.order)
+            .map(c => `
+            <div class="item">
+                <div class="item-details"><div class="item-name">${c.name}</div></div>
+                <div class="item-buttons">
+                    ${c.id !== 1 ? `<button class="delete-btn" onclick="deleteBizCategory(${c.id})">Delete</button>` : ''}
+                </div>
+            </div>`).join('');
+    }
 }
