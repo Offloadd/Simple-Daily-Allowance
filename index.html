@@ -147,6 +147,9 @@
                         <input type="text" id="spendingName" placeholder="What did you buy?">
                         <input type="number" id="spendingAmount" placeholder="Amount" step="0.01" min="0">
                         <input type="date" id="spendingDate">
+                        <select id="spendingNonMonthly" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1em;">
+                            <option value="">No non-monthly</option>
+                        </select>
                         <button onclick="addSpending()">Add Spending</button>
                     </div>
                     <ul class="item-list" id="spendingList"></ul>
