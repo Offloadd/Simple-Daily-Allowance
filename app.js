@@ -667,9 +667,10 @@ function calculateTotalSpent() {
 }
 
 function addSpending() {
-    const name = document.getElementById('spendingName').value.trim();
-    const amount = parseFloat(document.getElementById('spendingAmount').value);
-    const dateInput = document.getElementById('spendingDate').value;
+    const name           = document.getElementById('spendingName').value.trim();
+    const amount         = parseFloat(document.getElementById('spendingAmount').value);
+    const dateInput      = document.getElementById('spendingDate').value;
+    const nonMonthlyId   = parseInt(document.getElementById('spendingNonMonthly').value) || null;
     
     if (!name || !amount || amount <= 0 || !dateInput) {
         alert('Please fill in all spending fields');
@@ -680,11 +681,13 @@ function addSpending() {
         id: Date.now(),
         name: name,
         amount: amount,
-        date: dateInput
+        date: dateInput,
+        nonMonthlyId: nonMonthlyId
     });
     
     document.getElementById('spendingName').value = '';
     document.getElementById('spendingAmount').value = '';
+    document.getElementById('spendingNonMonthly').value = '';
     
     saveAndUpdate();
 }
@@ -1105,6 +1108,17 @@ function renderWishlist() {
             .sort((a, b) => a.order - b.order)
             .map(cat => `<option value="${cat.id}">${cat.name}</option>`)
             .join('');
+
+    // Populate the spending non-monthly dropdown
+    const spendingSelect = document.getElementById('spendingNonMonthly');
+    if (spendingSelect) {
+        spendingSelect.innerHTML = '<option value="">No non-monthly</option>' +
+            data.wishlistCategories
+                .filter(c => c.id !== 1)
+                .sort((a, b) => a.order - b.order)
+                .map(c => `<option value="${c.id}">${c.name}</option>`)
+                .join('');
+    }
     
     const wishlistList = document.getElementById('wishlistList');
     let wishlistHTML = '';
@@ -1115,14 +1129,22 @@ function renderWishlist() {
             const categoryItems = data.wishlist.filter(item => item.categoryId === category.id);
             
             if (categoryItems.length > 0 || category.id === 1) {
-                const isVisible = data.categoryVisibility[category.id] !== false;
+                const isVisible     = data.categoryVisibility[category.id] !== false;
                 const categoryTotal = categoryItems.reduce((sum, item) => sum + item.amount, 0);
+                const paid          = (data.spending || [])
+                    .filter(s => s.nonMonthlyId === category.id)
+                    .reduce((sum, s) => sum + s.amount, 0);
+                const remaining     = categoryTotal - paid;
+                const paidLabel     = paid > 0
+                    ? `<span style="color:#10b981;font-size:0.85em;margin-right:6px;">paid $${paid.toFixed(2)}</span>
+                       <span style="color:${remaining <= 0 ? '#10b981' : '#f59e0b'};font-weight:600;margin-right:10px;">left $${remaining.toFixed(2)}</span>`
+                    : `<span style="font-weight:600;color:#667eea;margin-right:10px;">$${categoryTotal.toFixed(2)}</span>`;
                 
                 wishlistHTML += `
                     <div class="category-section">
                         <div class="category-header">
                             <div class="category-title" onclick="toggleCategory(${category.id})" style="cursor: pointer; flex: 1;">${category.name} (${categoryItems.length})</div>
-                            <span style="font-weight: 600; color: #667eea; margin-right: 10px;">$${categoryTotal.toFixed(2)}</span>
+                            ${paidLabel}
                             <button id="category-toggle-${category.id}" class="toggle-btn" onclick="toggleCategory(${category.id}); event.stopPropagation();" style="padding: 5px 12px; font-size: 0.85em;">${isVisible ? 'Hide' : 'Show'}</button>
                         </div>
                         <div id="category-items-${category.id}" class="category-items${isVisible ? '' : ' hidden'}">
@@ -1185,7 +1207,7 @@ function renderCategoriesManagement() {
                         <input type="text" id="category-name-${cat.id}" value="${cat.name}" style="flex: 1; padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
                         <div class="item-buttons">
                             <button class="save-btn" onclick="saveCategory(${cat.id})">Save</button>
-                            <button class="delete-btn" onclick="deleteCategory(${cat.id})">Delete</button>
+                            ${cat.id !== 1 ? `<button class="delete-btn" onclick="deleteCategory(${cat.id})">Delete</button>` : ''}
                         </div>
                     </div>
                 `;
