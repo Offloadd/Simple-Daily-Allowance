@@ -1035,10 +1035,13 @@ function renderSpendingList() {
                     </li>
                 `;
             } else {
+                const nmCat = item.nonMonthlyId
+                    ? (data.wishlistCategories || []).find(c => c.id === item.nonMonthlyId)
+                    : null;
                 return `
                     <li class="item">
                         <div class="item-details">
-                            <div class="item-name">${item.name}</div>
+                            <div class="item-name">${item.name}${nmCat ? ` <span style="color:#667eea;font-size:0.8em;">→ ${nmCat.name}</span>` : ''}</div>
                             <div class="item-date">${formattedDate}</div>
                         </div>
                         <span class="item-amount">$${item.amount.toFixed(2)}</span>
@@ -1132,8 +1135,11 @@ function renderWishlist() {
                 const isVisible     = data.categoryVisibility[category.id] !== false;
                 const categoryTotal = categoryItems.reduce((sum, item) => sum + item.amount, 0);
                 const paid          = (data.spending || [])
-                    .filter(s => s.nonMonthlyId === category.id)
+                    .filter(s => s.nonMonthlyId === category.id || s.nonMonthlyId === String(category.id))
                     .reduce((sum, s) => sum + s.amount, 0);
+                const injections    = (data.spending || [])
+                    .filter(s => s.nonMonthlyId === category.id || s.nonMonthlyId === String(category.id))
+                    .sort((a, b) => b.date.localeCompare(a.date));
                 const remaining     = categoryTotal - paid;
                 const paidLabel     = paid > 0
                     ? `<span style="color:#10b981;font-size:0.85em;margin-right:6px;">paid $${paid.toFixed(2)}</span>
@@ -1187,6 +1193,20 @@ function renderWishlist() {
                                 }
                             }).join('')}
                             ${categoryItems.length === 0 ? '<div style="padding: 10px; color: #6b7280; font-style: italic;">No items in this category</div>' : ''}
+                            ${injections.length > 0 ? `
+                                <div style="border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 8px;">
+                                    <div style="font-size: 0.8em; color: #6b7280; padding: 4px 10px 6px; font-style: italic;">Payments applied:</div>
+                                    ${injections.map(s => {
+                                        const [yr,mo,dy] = s.date.split('-');
+                                        return `<div class="item category-item" style="opacity:0.8;">
+                                            <div class="item-details">
+                                                <div class="item-name" style="color:#10b981;">↓ ${s.name}</div>
+                                                <div class="item-date">${mo}/${dy}/${yr}</div>
+                                            </div>
+                                            <span class="item-amount" style="color:#10b981;">-$${s.amount.toFixed(2)}</span>
+                                        </div>`;
+                                    }).join('')}
+                                </div>` : ''}
                         </div>
                     </div>
                 `;
