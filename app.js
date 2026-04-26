@@ -217,9 +217,22 @@ async function loadUserData() {
             console.log('Loaded data from Firestore');
             
             // Merge with defaults to ensure all properties exist
+            const defaults = getDefaultData();
             data = {
-                ...getDefaultData(),
-                ...firestoreData
+                ...defaults,
+                ...firestoreData,
+                sectionVisibility: {
+                    ...defaults.sectionVisibility,
+                    ...(firestoreData.sectionVisibility || {})
+                },
+                bizCategoryVisibility: {
+                    ...defaults.bizCategoryVisibility,
+                    ...(firestoreData.bizCategoryVisibility || {})
+                },
+                bizExpenseCategories: firestoreData.bizExpenseCategories || defaults.bizExpenseCategories,
+                bizExpenses:          firestoreData.bizExpenses          || defaults.bizExpenses,
+                incomeEntries:        firestoreData.incomeEntries        || defaults.incomeEntries,
+                billableTotal:        firestoreData.billableTotal        || defaults.billableTotal
             };
         } else {
             console.log('No data in Firestore, using defaults');
