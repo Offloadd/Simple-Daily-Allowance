@@ -285,7 +285,7 @@ function getDefaultData() {
         dailyAllowance: 20,
         startDate: new Date().toISOString().split('T')[0],
         lastAllowanceDate: new Date().toISOString().split('T')[0],
-        lastLogCheck: null, // Track when we last checked for new entries
+        lastLogCheck: null,
         totalAccumulated: 20,
         spending: [],
         proposed: [],
@@ -297,14 +297,14 @@ function getDefaultData() {
         allowanceLog: [],
         colorScheme: {
             positive: [
-                { min: 0, max: 20, color: '#3b82f6' },      // Blue
-                { min: 21, max: 50, color: '#10b981' },     // Green
-                { min: 51, max: 999999, color: '#8b5cf6' }  // Purple
+                { min: 0, max: 20, color: '#3b82f6' },
+                { min: 21, max: 50, color: '#10b981' },
+                { min: 51, max: 999999, color: '#8b5cf6' }
             ],
             negative: [
-                { min: -20, max: -1, color: '#f59e0b' },    // Orange
-                { min: -50, max: -21, color: '#ef4444' },   // Red
-                { min: -999999, max: -51, color: '#7f1d1d' } // Dark Red
+                { min: -20, max: -1, color: '#f59e0b' },
+                { min: -50, max: -21, color: '#ef4444' },
+                { min: -999999, max: -51, color: '#7f1d1d' }
             ]
         },
         sectionVisibility: {
@@ -340,7 +340,7 @@ let data = getDefaultData();
 function toggleSection(sectionName) {
     data.sectionVisibility[sectionName] = !data.sectionVisibility[sectionName];
     updateSectionVisibility();
-    saveData(); // Just save, don't regenerate logs
+    saveData();
 }
 
 function updateSectionVisibility() {
@@ -361,9 +361,7 @@ function updateSectionVisibility() {
     sections.forEach(section => {
         const content = document.getElementById(section.contentId);
         if (!content) return;
-        
         const button = content.previousElementSibling.querySelector('.toggle-btn');
-        
         if (data.sectionVisibility[section.name]) {
             content.classList.remove('hidden');
             if (button) button.textContent = 'Hide';
@@ -398,11 +396,10 @@ function updateSettings() {
 }
 
 // ============================================================================
-// DATE/TIME FUNCTIONS (PST)
+// DATE/TIME FUNCTIONS
 // ============================================================================
 
 function getPSTDate() {
-    // Just get today's date in local time
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -416,57 +413,32 @@ function getPSTDate() {
 
 function shouldCheckForNewEntries() {
     const todayPST = getPSTDate();
-    
-    // If we've never checked, we should check
-    if (!data.lastLogCheck) {
-        return true;
-    }
-    
-    // If the last check was on a different day, we should check
-    if (data.lastLogCheck !== todayPST) {
-        return true;
-    }
-    
-    // Otherwise, we already checked today
+    if (!data.lastLogCheck) return true;
+    if (data.lastLogCheck !== todayPST) return true;
     return false;
 }
 
 function generateDailyLogEntries() {
     const todayPST = getPSTDate();
-    
-    // Check if we should even run this
     if (!shouldCheckForNewEntries()) {
         console.log('Already checked for new allowance entries today, skipping');
         return;
     }
     
     console.log('Checking for new allowance entries...');
-    console.log('Today (PST):', todayPST);
-    console.log('Start date:', data.startDate);
-    
     const startDate = new Date(data.startDate + 'T00:00:00');
     const currentDate = new Date(todayPST + 'T00:00:00');
-    
-    console.log('Start date object:', startDate.toISOString());
-    console.log('Current date object:', currentDate.toISOString());
-    
     const existingLogDates = new Set(data.allowanceLog.map(log => log.date));
     
     const allDates = [];
     for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0];
-        allDates.push(dateStr);
-        console.log('Date in range:', dateStr);
+        allDates.push(d.toISOString().split('T')[0]);
     }
-    
-    console.log('All dates to check:', allDates);
-    console.log('Existing log dates:', Array.from(existingLogDates));
     
     let entriesAdded = 0;
     allDates.forEach(dateStr => {
         if (!existingLogDates.has(dateStr)) {
             const applicableRate = getDailyAllowanceForDate(dateStr);
-            
             data.allowanceLog.push({
                 id: Date.now() + entriesAdded,
                 timestamp: new Date(dateStr + 'T05:00:00').toISOString(),
@@ -476,15 +448,8 @@ function generateDailyLogEntries() {
                 editing: false
             });
             entriesAdded++;
-            console.log(`Added allowance entry for ${dateStr}: $${applicableRate}`);
         }
     });
-    
-    if (entriesAdded > 0) {
-        console.log(`Added ${entriesAdded} new allowance entries`);
-    } else {
-        console.log('No new allowance entries needed');
-    }
     
     data.allowanceLog.sort((a, b) => a.date.localeCompare(b.date));
     
@@ -498,36 +463,25 @@ function generateDailyLogEntries() {
         data.totalAccumulated = data.allowanceLog[data.allowanceLog.length - 1].newAccumulated;
     }
     
-    // Update the last check date
     data.lastLogCheck = todayPST;
-    
-    // Save if we added entries
-    if (entriesAdded > 0) {
-        saveData();
-    }
+    if (entriesAdded > 0) saveData();
 }
 
 function getDailyAllowanceForDate(dateStr) {
     const relevantChanges = data.allowanceHistory
         .filter(change => change.date <= dateStr)
         .sort((a, b) => b.date.localeCompare(a.date));
-    
-    if (relevantChanges.length > 0) {
-        return relevantChanges[0].amount;
-    }
-    
+    if (relevantChanges.length > 0) return relevantChanges[0].amount;
     return data.dailyAllowance;
 }
 
 function regenerateLogTotals() {
     data.allowanceLog.sort((a, b) => a.date.localeCompare(b.date));
-    
     let runningTotal = 0;
     data.allowanceLog.forEach(entry => {
         runningTotal += entry.amountAdded;
         entry.newAccumulated = runningTotal;
     });
-    
     if (data.allowanceLog.length > 0) {
         data.totalAccumulated = data.allowanceLog[data.allowanceLog.length - 1].newAccumulated;
     }
@@ -536,18 +490,9 @@ function regenerateLogTotals() {
 function addAllowanceLog() {
     const dateInput = document.getElementById('logDate').value;
     const amount = parseFloat(document.getElementById('logAmount').value);
-    
-    if (!dateInput || amount < 0 || isNaN(amount)) {
-        alert('Please fill in date and amount');
-        return;
-    }
-    
+    if (!dateInput || amount < 0 || isNaN(amount)) { alert('Please fill in date and amount'); return; }
     const existingIndex = data.allowanceLog.findIndex(log => log.date === dateInput);
-    if (existingIndex !== -1) {
-        alert('An entry for this date already exists. Please edit or delete it first.');
-        return;
-    }
-    
+    if (existingIndex !== -1) { alert('An entry for this date already exists. Please edit or delete it first.'); return; }
     data.allowanceLog.push({
         id: Date.now(),
         timestamp: new Date(dateInput + 'T05:00:00').toISOString(),
@@ -555,10 +500,8 @@ function addAllowanceLog() {
         amountAdded: amount,
         manualEntry: true
     });
-    
     document.getElementById('logDate').value = '';
     document.getElementById('logAmount').value = '';
-    
     regenerateLogTotals();
     saveAndUpdate();
 }
@@ -566,39 +509,22 @@ function addAllowanceLog() {
 function editAllowanceLog(id) {
     const item = data.allowanceLog.find(item => item.id === id);
     if (!item) return;
-    
     item.editing = true;
-    // Don't call updateDisplay which triggers generateDailyLogEntries
-    // Just re-render the allowance log
     renderAllowanceLog();
 }
 
 function saveAllowanceLog(id) {
     const item = data.allowanceLog.find(item => item.id === id);
     if (!item) return;
-    
-    const dateInput = document.getElementById(`log-date-${id}`);
-    const amountInput = document.getElementById(`log-amount-${id}`);
-    
-    const newDate = dateInput.value;
-    const newAmount = parseFloat(amountInput.value);
-    
-    if (!newDate || newAmount < 0 || isNaN(newAmount)) {
-        alert('Please enter valid values');
-        return;
-    }
-    
+    const newDate = document.getElementById(`log-date-${id}`).value;
+    const newAmount = parseFloat(document.getElementById(`log-amount-${id}`).value);
+    if (!newDate || newAmount < 0 || isNaN(newAmount)) { alert('Please enter valid values'); return; }
     const existingEntry = data.allowanceLog.find(log => log.date === newDate && log.id !== id);
-    if (existingEntry) {
-        alert('An entry for this date already exists.');
-        return;
-    }
-    
+    if (existingEntry) { alert('An entry for this date already exists.'); return; }
     item.date = newDate;
     item.timestamp = new Date(newDate + 'T05:00:00').toISOString();
     item.amountAdded = newAmount;
     item.editing = false;
-    
     regenerateLogTotals();
     saveAndUpdate();
 }
@@ -616,22 +542,10 @@ function deleteAllowanceLog(id) {
 function addAllowanceHistory() {
     const dateInput = document.getElementById('historyDate').value;
     const amount = parseFloat(document.getElementById('historyAmount').value);
-    
-    if (!dateInput || !amount || amount <= 0) {
-        alert('Please fill in date and amount');
-        return;
-    }
-    
-    data.allowanceHistory.push({
-        id: Date.now(),
-        date: dateInput,
-        amount: amount,
-        previousAmount: null
-    });
-    
+    if (!dateInput || !amount || amount <= 0) { alert('Please fill in date and amount'); return; }
+    data.allowanceHistory.push({ id: Date.now(), date: dateInput, amount: amount, previousAmount: null });
     document.getElementById('historyDate').value = '';
     document.getElementById('historyAmount').value = '';
-    
     data.allowanceHistory.sort((a, b) => a.date.localeCompare(b.date));
     saveAndUpdate();
 }
@@ -639,7 +553,6 @@ function addAllowanceHistory() {
 function editAllowanceHistory(id) {
     const item = data.allowanceHistory.find(item => item.id === id);
     if (!item) return;
-    
     item.editing = true;
     updateDisplay();
 }
@@ -647,22 +560,12 @@ function editAllowanceHistory(id) {
 function saveAllowanceHistory(id) {
     const item = data.allowanceHistory.find(item => item.id === id);
     if (!item) return;
-    
-    const dateInput = document.getElementById(`history-date-${id}`);
-    const amountInput = document.getElementById(`history-amount-${id}`);
-    
-    const newDate = dateInput.value;
-    const newAmount = parseFloat(amountInput.value);
-    
-    if (!newDate || !newAmount || newAmount <= 0) {
-        alert('Please enter valid date and amount');
-        return;
-    }
-    
+    const newDate = document.getElementById(`history-date-${id}`).value;
+    const newAmount = parseFloat(document.getElementById(`history-amount-${id}`).value);
+    if (!newDate || !newAmount || newAmount <= 0) { alert('Please enter valid date and amount'); return; }
     item.date = newDate;
     item.amount = newAmount;
     item.editing = false;
-    
     saveAndUpdate();
 }
 
@@ -680,28 +583,15 @@ function calculateTotalSpent() {
 }
 
 function addSpending() {
-    const name           = document.getElementById('spendingName').value.trim();
-    const amount         = parseFloat(document.getElementById('spendingAmount').value);
-    const dateInput      = document.getElementById('spendingDate').value;
-    const nonMonthlyId   = parseInt(document.getElementById('spendingNonMonthly').value) || null;
-    
-    if (!name || !amount || amount <= 0 || !dateInput) {
-        alert('Please fill in all spending fields');
-        return;
-    }
-    
-    data.spending.push({
-        id: Date.now(),
-        name: name,
-        amount: amount,
-        date: dateInput,
-        nonMonthlyId: nonMonthlyId
-    });
-    
+    const name         = document.getElementById('spendingName').value.trim();
+    const amount       = parseFloat(document.getElementById('spendingAmount').value);
+    const dateInput    = document.getElementById('spendingDate').value;
+    const nonMonthlyId = parseInt(document.getElementById('spendingNonMonthly').value) || null;
+    if (!name || !amount || amount <= 0 || !dateInput) { alert('Please fill in all spending fields'); return; }
+    data.spending.push({ id: Date.now(), name, amount, date: dateInput, nonMonthlyId });
     document.getElementById('spendingName').value = '';
     document.getElementById('spendingAmount').value = '';
     document.getElementById('spendingNonMonthly').value = '';
-    
     saveAndUpdate();
 }
 
@@ -713,7 +603,6 @@ function deleteSpending(id) {
 function editSpending(id) {
     const item = data.spending.find(item => item.id === id);
     if (!item) return;
-    
     item.editing = true;
     updateDisplay();
 }
@@ -721,22 +610,12 @@ function editSpending(id) {
 function saveSpending(id) {
     const item = data.spending.find(item => item.id === id);
     if (!item) return;
-    
-    const nameInput = document.getElementById(`spending-name-${id}`);
-    const amountInput = document.getElementById(`spending-amount-${id}`);
-    
-    const newName = nameInput.value.trim();
-    const newAmount = parseFloat(amountInput.value);
-    
-    if (!newName || !newAmount || newAmount <= 0) {
-        alert('Please enter valid name and amount');
-        return;
-    }
-    
+    const newName = document.getElementById(`spending-name-${id}`).value.trim();
+    const newAmount = parseFloat(document.getElementById(`spending-amount-${id}`).value);
+    if (!newName || !newAmount || newAmount <= 0) { alert('Please enter valid name and amount'); return; }
     item.name = newName;
     item.amount = newAmount;
     item.editing = false;
-    
     saveAndUpdate();
 }
 
@@ -747,21 +626,10 @@ function saveSpending(id) {
 function addProposed() {
     const name = document.getElementById('proposedName').value.trim();
     const amount = parseFloat(document.getElementById('proposedAmount').value);
-    
-    if (!name || !amount || amount <= 0) {
-        alert('Please fill in all proposed purchase fields');
-        return;
-    }
-    
-    data.proposed.push({
-        id: Date.now(),
-        name: name,
-        amount: amount
-    });
-    
+    if (!name || !amount || amount <= 0) { alert('Please fill in all proposed purchase fields'); return; }
+    data.proposed.push({ id: Date.now(), name, amount });
     document.getElementById('proposedName').value = '';
     document.getElementById('proposedAmount').value = '';
-    
     saveAndUpdate();
 }
 
@@ -773,7 +641,6 @@ function deleteProposed(id) {
 function editProposed(id) {
     const item = data.proposed.find(item => item.id === id);
     if (!item) return;
-    
     item.editing = true;
     updateDisplay();
 }
@@ -781,36 +648,19 @@ function editProposed(id) {
 function saveProposed(id) {
     const item = data.proposed.find(item => item.id === id);
     if (!item) return;
-    
-    const nameInput = document.getElementById(`proposed-name-${item.id}`);
-    const amountInput = document.getElementById(`proposed-amount-${item.id}`);
-    
-    const newName = nameInput.value.trim();
-    const newAmount = parseFloat(amountInput.value);
-    
-    if (!newName || !newAmount || newAmount <= 0) {
-        alert('Please enter valid name and amount');
-        return;
-    }
-    
+    const newName = document.getElementById(`proposed-name-${item.id}`).value.trim();
+    const newAmount = parseFloat(document.getElementById(`proposed-amount-${item.id}`).value);
+    if (!newName || !newAmount || newAmount <= 0) { alert('Please enter valid name and amount'); return; }
     item.name = newName;
     item.amount = newAmount;
     item.editing = false;
-    
     saveAndUpdate();
 }
 
 function moveProposedToWishlist(id) {
     const item = data.proposed.find(item => item.id === id);
     if (!item) return;
-    
-    data.wishlist.push({
-        id: Date.now(),
-        name: item.name,
-        amount: item.amount,
-        categoryId: 1 // Default to Unassigned
-    });
-    
+    data.wishlist.push({ id: Date.now(), name: item.name, amount: item.amount, categoryId: 1 });
     data.proposed = data.proposed.filter(item => item.id !== id);
     saveAndUpdate();
 }
@@ -821,35 +671,16 @@ function moveProposedToWishlist(id) {
 
 function addCategory() {
     const name = document.getElementById('newCategoryName').value.trim();
-    
-    if (!name) {
-        alert('Please enter a category name');
-        return;
-    }
-    
+    if (!name) { alert('Please enter a category name'); return; }
     const newId = Math.max(...data.wishlistCategories.map(c => c.id), 0) + 1;
-    data.wishlistCategories.push({
-        id: newId,
-        name: name,
-        order: data.wishlistCategories.length
-    });
-    
+    data.wishlistCategories.push({ id: newId, name, order: data.wishlistCategories.length });
     document.getElementById('newCategoryName').value = '';
     saveAndUpdate();
 }
 
 function deleteCategory(id) {
-    if (id === 1) {
-        alert('Cannot delete the Unassigned category');
-        return;
-    }
-    
-    data.wishlist.forEach(item => {
-        if (item.categoryId === id) {
-            item.categoryId = 1;
-        }
-    });
-    
+    if (id === 1) { alert('Cannot delete the Unassigned category'); return; }
+    data.wishlist.forEach(item => { if (item.categoryId === id) item.categoryId = 1; });
     data.wishlistCategories = data.wishlistCategories.filter(cat => cat.id !== id);
     saveAndUpdate();
 }
@@ -857,7 +688,6 @@ function deleteCategory(id) {
 function editCategory(id) {
     const category = data.wishlistCategories.find(cat => cat.id === id);
     if (!category) return;
-    
     category.editing = true;
     updateDisplay();
 }
@@ -865,15 +695,8 @@ function editCategory(id) {
 function saveCategory(id) {
     const category = data.wishlistCategories.find(cat => cat.id === id);
     if (!category) return;
-    
-    const nameInput = document.getElementById(`category-name-${id}`);
-    const newName = nameInput.value.trim();
-    
-    if (!newName) {
-        alert('Please enter a valid category name');
-        return;
-    }
-    
+    const newName = document.getElementById(`category-name-${id}`).value.trim();
+    if (!newName) { alert('Please enter a valid category name'); return; }
     category.name = newName;
     category.editing = false;
     saveAndUpdate();
@@ -882,7 +705,6 @@ function saveCategory(id) {
 function changeItemCategory(itemId, newCategoryId) {
     const item = data.wishlist.find(item => item.id === itemId);
     if (!item) return;
-    
     item.categoryId = parseInt(newCategoryId);
     saveAndUpdate();
 }
@@ -890,17 +712,12 @@ function changeItemCategory(itemId, newCategoryId) {
 function toggleCategory(categoryId) {
     const element = document.getElementById(`category-items-${categoryId}`);
     const button = document.getElementById(`category-toggle-${categoryId}`);
-    
     if (element) {
         element.classList.toggle('hidden');
         const isHidden = element.classList.contains('hidden');
         data.categoryVisibility[categoryId] = !isHidden;
-        
-        if (button) {
-            button.textContent = isHidden ? 'Show' : 'Hide';
-        }
-        
-        saveData(); // Just save, don't regenerate logs
+        if (button) button.textContent = isHidden ? 'Show' : 'Hide';
+        saveData();
     }
 }
 
@@ -908,23 +725,11 @@ function addWishlist() {
     const name = document.getElementById('wishlistName').value.trim();
     const amount = parseFloat(document.getElementById('wishlistAmount').value);
     const categoryId = parseInt(document.getElementById('wishlistCategory').value);
-    
-    if (!name || !amount || amount <= 0 || !categoryId) {
-        alert('Please fill in all fields including category');
-        return;
-    }
-    
-    data.wishlist.push({
-        id: Date.now(),
-        name: name,
-        amount: amount,
-        categoryId: categoryId
-    });
-    
+    if (!name || !amount || amount <= 0 || !categoryId) { alert('Please fill in all fields including category'); return; }
+    data.wishlist.push({ id: Date.now(), name, amount, categoryId });
     document.getElementById('wishlistName').value = '';
     document.getElementById('wishlistAmount').value = '';
     document.getElementById('wishlistCategory').value = '';
-    
     saveAndUpdate();
 }
 
@@ -936,7 +741,6 @@ function deleteWishlist(id) {
 function editWishlist(id) {
     const item = data.wishlist.find(item => item.id === id);
     if (!item) return;
-    
     item.editing = true;
     updateDisplay();
 }
@@ -944,35 +748,19 @@ function editWishlist(id) {
 function saveWishlist(id) {
     const item = data.wishlist.find(item => item.id === id);
     if (!item) return;
-    
-    const nameInput = document.getElementById(`wishlist-name-${item.id}`);
-    const amountInput = document.getElementById(`wishlist-amount-${item.id}`);
-    
-    const newName = nameInput.value.trim();
-    const newAmount = parseFloat(amountInput.value);
-    
-    if (!newName || !newAmount || newAmount <= 0) {
-        alert('Please enter valid name and amount');
-        return;
-    }
-    
+    const newName = document.getElementById(`wishlist-name-${item.id}`).value.trim();
+    const newAmount = parseFloat(document.getElementById(`wishlist-amount-${item.id}`).value);
+    if (!newName || !newAmount || newAmount <= 0) { alert('Please enter valid name and amount'); return; }
     item.name = newName;
     item.amount = newAmount;
     item.editing = false;
-    
     saveAndUpdate();
 }
 
 function moveWishlistToProposed(id) {
     const item = data.wishlist.find(item => item.id === id);
     if (!item) return;
-    
-    data.proposed.push({
-        id: Date.now(),
-        name: item.name,
-        amount: item.amount
-    });
-    
+    data.proposed.push({ id: Date.now(), name: item.name, amount: item.amount });
     saveAndUpdate();
 }
 
@@ -987,7 +775,6 @@ function updateDisplay() {
     const spent = calculateTotalSpent();
     const available = accumulated - spent;
     
-    // Update balances
     document.getElementById('totalAccumulated').textContent = `$${accumulated.toFixed(2)}`;
     document.getElementById('totalSpent').textContent = `$${spent.toFixed(2)}`;
     
@@ -995,34 +782,15 @@ function updateDisplay() {
     const balanceColor = getBalanceColor(available);
     availableBalanceDiv.innerHTML = `<span style="color: ${balanceColor}; font-weight: bold;">$${available.toFixed(2)}</span>`;
     
-    // Update spending list
     renderSpendingList();
-    
-    // Update proposed list
     renderProposedList(available);
-    
-    // Update wishlist
     renderWishlist();
-    
-    // Update categories management
     renderCategoriesManagement();
-    
-    // Update allowance history
     renderAllowanceHistory();
-    
-    // Update allowance log
     renderAllowanceLog();
-    
-    // Update color scheme
     renderColorScheme();
-
-    // Update income tracker
     renderIncomeTracker();
-
-    // Update business expenses
     renderBizExpenses();
-    
-    // Update section visibility
     updateSectionVisibility();
 }
 
@@ -1033,7 +801,6 @@ function renderSpendingList() {
         .map(item => {
             const [year, month, day] = item.date.split('-');
             const formattedDate = `${month}/${day}/${year}`;
-            
             if (item.editing) {
                 return `
                     <li class="item editing">
@@ -1045,8 +812,7 @@ function renderSpendingList() {
                             <button class="save-btn" onclick="saveSpending(${item.id})">Save</button>
                             <button class="delete-btn" onclick="deleteSpending(${item.id})">Delete</button>
                         </div>
-                    </li>
-                `;
+                    </li>`;
             } else {
                 const nmCat = item.nonMonthlyId
                     ? (data.wishlistCategories || []).find(c => c.id === item.nonMonthlyId)
@@ -1062,8 +828,7 @@ function renderSpendingList() {
                             <button class="edit-btn" onclick="editSpending(${item.id})">Edit</button>
                             <button class="delete-btn" onclick="deleteSpending(${item.id})">Delete</button>
                         </div>
-                    </li>
-                `;
+                    </li>`;
             }
         }).join('');
 }
@@ -1076,7 +841,6 @@ function renderProposedList(available) {
     proposedList.innerHTML = data.proposed.map(item => {
         const canAfford = runningBalance >= item.amount;
         if (canAfford) runningBalance -= item.amount;
-        
         if (item.editing) {
             return `
                 <li class="item proposed-item ${canAfford ? 'can-afford' : 'cannot-afford'} editing">
@@ -1088,8 +852,7 @@ function renderProposedList(available) {
                         <button class="save-btn" onclick="saveProposed(${item.id})">Save</button>
                         <button class="delete-btn" onclick="deleteProposed(${item.id})">Delete</button>
                     </div>
-                </li>
-            `;
+                </li>`;
         } else {
             return `
                 <li class="item proposed-item ${canAfford ? 'can-afford' : 'cannot-afford'}">
@@ -1105,8 +868,7 @@ function renderProposedList(available) {
                         <button class="edit-btn" onclick="editProposed(${item.id})">Edit</button>
                         <button class="delete-btn" onclick="deleteProposed(${item.id})">Delete</button>
                     </div>
-                </li>
-            `;
+                </li>`;
         }
     }).join('');
     
@@ -1125,7 +887,6 @@ function renderWishlist() {
             .map(cat => `<option value="${cat.id}">${cat.name}</option>`)
             .join('');
 
-    // Populate the spending non-monthly dropdown
     const spendingSelect = document.getElementById('spendingNonMonthly');
     if (spendingSelect) {
         spendingSelect.innerHTML = '<option value="">No non-monthly</option>' +
@@ -1143,7 +904,6 @@ function renderWishlist() {
         .sort((a, b) => a.order - b.order)
         .forEach(category => {
             const categoryItems = data.wishlist.filter(item => item.categoryId === category.id);
-            
             if (categoryItems.length > 0 || category.id === 1) {
                 const isVisible     = data.categoryVisibility[category.id] !== false;
                 const categoryTotal = categoryItems.reduce((sum, item) => sum + item.amount, 0);
@@ -1172,7 +932,6 @@ function renderWishlist() {
                                     .sort((a, b) => a.order - b.order)
                                     .map(cat => `<option value="${cat.id}" ${cat.id === item.categoryId ? 'selected' : ''}>${cat.name}</option>`)
                                     .join('');
-                                
                                 if (item.editing) {
                                     return `
                                         <div class="item category-item editing">
@@ -1184,8 +943,7 @@ function renderWishlist() {
                                                 <button class="save-btn" onclick="saveWishlist(${item.id})">Save</button>
                                                 <button class="delete-btn" onclick="deleteWishlist(${item.id})">Delete</button>
                                             </div>
-                                        </div>
-                                    `;
+                                        </div>`;
                                 } else {
                                     return `
                                         <div class="item category-item">
@@ -1201,8 +959,7 @@ function renderWishlist() {
                                                 <button class="edit-btn" onclick="editWishlist(${item.id})">Edit</button>
                                                 <button class="delete-btn" onclick="deleteWishlist(${item.id})">Delete</button>
                                             </div>
-                                        </div>
-                                    `;
+                                        </div>`;
                                 }
                             }).join('')}
                             ${categoryItems.length === 0 ? '<div style="padding: 10px; color: #6b7280; font-style: italic;">No items in this category</div>' : ''}
@@ -1221,8 +978,7 @@ function renderWishlist() {
                                     }).join('')}
                                 </div>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }
         });
     
@@ -1242,8 +998,7 @@ function renderCategoriesManagement() {
                             <button class="save-btn" onclick="saveCategory(${cat.id})">Save</button>
                             ${cat.id !== 1 ? `<button class="delete-btn" onclick="deleteCategory(${cat.id})">Delete</button>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             } else {
                 return `
                     <div class="category-management-item">
@@ -1252,8 +1007,7 @@ function renderCategoriesManagement() {
                             <button class="edit-btn" onclick="editCategory(${cat.id})">Edit</button>
                             ${cat.id !== 1 ? `<button class="delete-btn" onclick="deleteCategory(${cat.id})">Delete</button>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }
         }).join('');
 }
@@ -1274,22 +1028,19 @@ function renderAllowanceHistory() {
                             <button class="save-btn" onclick="saveAllowanceHistory(${item.id})">Save</button>
                             <button class="delete-btn" onclick="deleteAllowanceHistory(${item.id})">Delete</button>
                         </div>
-                    </li>
-                `;
+                    </li>`;
             } else {
                 const [year, month, day] = item.date.split('-');
-                const formattedDate = `${month}/${day}/${year}`;
                 return `
                     <li class="item">
                         <div class="item-details">
-                            <div class="item-name">${formattedDate}: Changed to $${item.amount.toFixed(2)}/day${item.previousAmount !== null ? ` (was $${item.previousAmount.toFixed(2)})` : ''}</div>
+                            <div class="item-name">${month}/${day}/${year}: Changed to $${item.amount.toFixed(2)}/day${item.previousAmount !== null ? ` (was $${item.previousAmount.toFixed(2)})` : ''}</div>
                         </div>
                         <div class="item-buttons">
                             <button class="edit-btn" onclick="editAllowanceHistory(${item.id})">Edit</button>
                             <button class="delete-btn" onclick="deleteAllowanceHistory(${item.id})">Delete</button>
                         </div>
-                    </li>
-                `;
+                    </li>`;
             }
         }).join('');
 }
@@ -1304,7 +1055,6 @@ function renderAllowanceLog() {
             .map(item => {
                 const [year, month, day] = item.date.split('-');
                 const formattedDate = `${month}/${day}/${year}`;
-                
                 if (item.editing) {
                     return `
                         <li class="item log-item editing">
@@ -1316,12 +1066,10 @@ function renderAllowanceLog() {
                                 <button class="save-btn" onclick="saveAllowanceLog(${item.id})">Save</button>
                                 <button class="delete-btn" onclick="deleteAllowanceLog(${item.id})">Delete</button>
                             </div>
-                        </li>
-                    `;
+                        </li>`;
                 } else {
                     const typeLabel = item.manualEntry ? '<span style="color: #f59e0b; font-size: 0.85em;"> (Manual)</span>' : 
                                     item.autoGenerated ? '<span style="color: #10b981; font-size: 0.85em;"> (Auto)</span>' : '';
-                    
                     return `
                         <li class="item log-item">
                             <div class="item-details">
@@ -1332,8 +1080,7 @@ function renderAllowanceLog() {
                                 <button class="edit-btn" onclick="editAllowanceLog(${item.id})">Edit</button>
                                 <button class="delete-btn" onclick="deleteAllowanceLog(${item.id})">Delete</button>
                             </div>
-                        </li>
-                    `;
+                        </li>`;
                 }
             }).join('');
     }
@@ -1342,15 +1089,9 @@ function renderAllowanceLog() {
 function renderColorScheme() {
     const positiveList = document.getElementById('positiveRangesList');
     const negativeList = document.getElementById('negativeRangesList');
-    
     if (!positiveList || !negativeList) return;
+    if (!data.colorScheme) data.colorScheme = getDefaultData().colorScheme;
     
-    // Ensure color scheme exists
-    if (!data.colorScheme) {
-        data.colorScheme = getDefaultData().colorScheme;
-    }
-    
-    // Render positive ranges
     positiveList.innerHTML = data.colorScheme.positive.map((range, index) => {
         if (range.editing) {
             return `
@@ -1365,8 +1106,7 @@ function renderColorScheme() {
                         <button class="save-btn" onclick="saveColorRange('positive', ${index})">Save</button>
                         <button class="delete-btn" onclick="deleteColorRange('positive', ${index})">Delete</button>
                     </div>
-                </li>
-            `;
+                </li>`;
         } else {
             return `
                 <li class="item">
@@ -1378,12 +1118,10 @@ function renderColorScheme() {
                         <button class="edit-btn" onclick="editColorRange('positive', ${index})">Edit</button>
                         <button class="delete-btn" onclick="deleteColorRange('positive', ${index})">Delete</button>
                     </div>
-                </li>
-            `;
+                </li>`;
         }
     }).join('');
     
-    // Render negative ranges
     negativeList.innerHTML = data.colorScheme.negative.map((range, index) => {
         if (range.editing) {
             return `
@@ -1398,8 +1136,7 @@ function renderColorScheme() {
                         <button class="save-btn" onclick="saveColorRange('negative', ${index})">Save</button>
                         <button class="delete-btn" onclick="deleteColorRange('negative', ${index})">Delete</button>
                     </div>
-                </li>
-            `;
+                </li>`;
         } else {
             return `
                 <li class="item">
@@ -1411,93 +1148,58 @@ function renderColorScheme() {
                         <button class="edit-btn" onclick="editColorRange('negative', ${index})">Edit</button>
                         <button class="delete-btn" onclick="deleteColorRange('negative', ${index})">Delete</button>
                     </div>
-                </li>
-            `;
+                </li>`;
         }
     }).join('');
 }
 
 // ============================================================================
 // TIMELINE CSV EXPORT
-// Generates a CSV compatible with the Timeline Viewer.
-// Columns: Date, Type, Amount, Item, Balance
-// One row per spending event and one row per allowance addition, in date order.
 // ============================================================================
 
 function exportTimelineCSV() {
     const events = [];
 
-    // Add spending events
     (data.spending || []).forEach(s => {
         if (!s.date) return;
-        events.push({
-            date:   s.date,
-            type:   'spend',
-            amount: s.amount,
-            item:   s.name || ''
-        });
+        events.push({ date: s.date, type: 'spend', amount: s.amount, item: s.name || '' });
     });
 
-    // Add allowance addition events
     (data.allowanceLog || []).forEach(l => {
         if (!l.date) return;
-        events.push({
-            date:   l.date,
-            type:   'allowance',
-            amount: l.amountAdded,
-            item:   `+$${l.amountAdded.toFixed(2)}/day`
-        });
+        events.push({ date: l.date, type: 'allowance', amount: l.amountAdded, item: `+$${l.amountAdded.toFixed(2)}/day` });
     });
 
-    if (events.length === 0) {
-        alert('No spending or allowance data to export yet.');
-        return;
-    }
+    if (events.length === 0) { alert('No spending or allowance data to export yet.'); return; }
 
-    // Sort chronologically — allowance additions before spending on same day
-    // so the balance reflects the credit before the spend
     events.sort((a, b) => {
         if (a.date !== b.date) return a.date.localeCompare(b.date);
         if (a.type === 'allowance' && b.type !== 'allowance') return -1;
-        if (b.type === 'allowance' && a.type !== 'allowance') return  1;
+        if (b.type === 'allowance' && a.type !== 'allowance') return 1;
         return 0;
     });
 
-    // Calculate running balance for each event
     let runningAccumulated = 0;
-    let runningSpent       = 0;
+    let runningSpent = 0;
     events.forEach(e => {
-        if (e.type === 'allowance') {
-            runningAccumulated += e.amount;
-        } else {
-            runningSpent += e.amount;
-        }
+        if (e.type === 'allowance') runningAccumulated += e.amount;
+        else runningSpent += e.amount;
         e.balance = runningAccumulated - runningSpent;
     });
 
-    // Build CSV
     const escapeCSV = val => {
         const s = String(val);
-        return s.includes(',') || s.includes('"') || s.includes('\n')
-            ? `"${s.replace(/"/g, '""')}"` : s;
+        return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
     };
 
     let csv = 'Date,Type,Amount,Item,Balance\n';
     events.forEach(e => {
-        csv += [
-            escapeCSV(e.date),
-            escapeCSV(e.type),
-            escapeCSV(e.amount.toFixed(2)),
-            escapeCSV(e.item),
-            escapeCSV(e.balance.toFixed(2))
-        ].join(',') + '\n';
+        csv += [escapeCSV(e.date), escapeCSV(e.type), escapeCSV(e.amount.toFixed(2)), escapeCSV(e.item), escapeCSV(e.balance.toFixed(2))].join(',') + '\n';
     });
 
-    // Copy to clipboard
     navigator.clipboard.writeText(csv).then(() => {
         alert(`✅ Timeline CSV copied to clipboard!\n${events.length} events exported.\n\nPaste it into the Allowance section of the Timeline Viewer.`);
     }).catch(() => {
-        // Fallback: show in a textarea so the user can manually copy
         const ta = document.createElement('textarea');
         ta.value = csv;
         ta.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);width:600px;height:300px;z-index:9999;font-family:monospace;font-size:12px;padding:10px;border:2px solid #667eea;border-radius:8px;';
@@ -1508,8 +1210,8 @@ function exportTimelineCSV() {
     });
 }
 
-// Initialize on page load
 console.log('Allowance Tracker app loaded - waiting for auth...');
+
 // ============================================================================
 // INCOME TRACKER FUNCTIONS
 // ============================================================================
@@ -1519,18 +1221,14 @@ function addIncomeEntry() {
     const amount = parseFloat(document.getElementById('it-amount').value);
     const date   = document.getElementById('it-date').value;
     const note   = document.getElementById('it-note').value.trim();
-
     if (!source) { alert('Please enter a source.'); return; }
     if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
     if (!date) { alert('Please select a date.'); return; }
-
     if (!data.incomeEntries) data.incomeEntries = [];
     data.incomeEntries.push({ id: Date.now().toString(), source, amount, date, note });
-
     document.getElementById('it-source').value = '';
     document.getElementById('it-amount').value = '';
     document.getElementById('it-note').value = '';
-
     saveAndUpdate();
 }
 
@@ -1557,46 +1255,38 @@ function renderIncomeTracker() {
     document.getElementById('it-combinedDaily').textContent = `$${combinedDaily.toFixed(2)}`;
     document.getElementById('it-entryCount').textContent    = `${entries.length} entr${entries.length===1?'y':'ies'}`;
 
-    // Billable input — only set if not focused
     const billableInput = document.getElementById('it-billableTotal');
-    if (document.activeElement !== billableInput) {
-        billableInput.value = billable || '';
-    }
+    if (document.activeElement !== billableInput) billableInput.value = billable || '';
 
     document.getElementById('it-dailyRateLabel').textContent = `$${combinedDaily.toFixed(2)} / day`;
 
     // Stacked deposit bar
-    const MAX_DAILY = 100; // bar represents $0–$100/day
-    const bar = document.getElementById('it-stackedBar');
-    const tooltip = document.getElementById('it-barTooltip');
-    const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const totalForBar = bankTotal + billable;
+    const MAX_DAILY = 100;
     const maxAmount = MAX_DAILY * 365;
+    const bar = document.getElementById('it-stackedBar');
+    const sortedEntries = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Build alternating segments — confirmed deposits first, billable always last
+    // Confirmed deposits first (alternating dark/light), billable always last in purple
     const segments = [];
-    sorted.forEach(e => segments.push({ ...e, isBillable: false }));
+    sortedEntries.forEach(e => segments.push({ ...e, isBillable: false }));
     if (billable > 0) segments.push({ label: 'Billable estimate', amount: billable, date: '—', note: '', isBillable: true });
 
     bar.innerHTML = segments.map((seg, i) => {
         const pct = Math.min((seg.amount / maxAmount) * 100, 100);
         const bg  = seg.isBillable ? '#667eea' : (i % 2 === 0 ? '#374151' : '#9ca3af');
-        const [yr,mo,dy] = (seg.date && seg.date !== '—') ? seg.date.split('-') : [null,null,null];
-        const dateStr = yr ? `${mo}/${dy}/${yr}` : '—';
+        const dateStr = (seg.date && seg.date !== '—') ? seg.date.split('-').slice(1).join('/') + '/' + seg.date.split('-')[0] : '—';
         const tip = encodeURIComponent(`${seg.source || seg.label} · $${seg.amount.toFixed(2)} · ${dateStr}${seg.note ? ' · ' + seg.note : ''}`);
         return `<div style="width:${pct}%; background:${bg}; height:100%; cursor:pointer; min-width:${pct > 0 ? '3px' : '0'};"
             onmouseenter="showItTip(event,'${tip}')"
             onmouseleave="hideItTip()"></div>`;
     }).join('');
 
-    // Position markers
+    // Position $60 and $80 markers
     const marker60 = document.getElementById('it-marker60');
     const marker80 = document.getElementById('it-marker80');
-    const pct60 = (60 / MAX_DAILY) * 100;
-    const pct80 = (80 / MAX_DAILY) * 100;
-    marker60.style.left  = pct60 + '%';
+    marker60.style.left = (60 / MAX_DAILY * 100) + '%';
     marker60.style.display = '';
-    marker80.style.left  = pct80 + '%';
+    marker80.style.left = (80 / MAX_DAILY * 100) + '%';
     marker80.style.display = '';
 
     // Log list
@@ -1610,8 +1300,8 @@ function renderIncomeTracker() {
     }
     empty.style.display = 'none';
 
-    const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
-    list.innerHTML = sorted.map(e => `
+    const sortedDesc = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+    list.innerHTML = sortedDesc.map(e => `
         <li class="item">
             <div class="item-details">
                 <div class="item-name">${e.source}${e.note ? ' <span style="color:#9ca3af;font-size:0.85em;">— ' + e.note + '</span>' : ''}</div>
@@ -1652,19 +1342,12 @@ function addBizExpense() {
     const name       = document.getElementById('bizExpenseName').value.trim();
     const amount     = parseFloat(document.getElementById('bizExpenseAmount').value);
     const categoryId = parseInt(document.getElementById('bizExpenseCategory').value);
-
-    if (!name || !amount || amount <= 0 || !categoryId) {
-        alert('Please fill in all fields including category');
-        return;
-    }
-
+    if (!name || !amount || amount <= 0 || !categoryId) { alert('Please fill in all fields including category'); return; }
     if (!data.bizExpenses) data.bizExpenses = [];
     data.bizExpenses.push({ id: Date.now(), name, amount, categoryId });
-
     document.getElementById('bizExpenseName').value    = '';
     document.getElementById('bizExpenseAmount').value  = '';
     document.getElementById('bizExpenseCategory').value = '';
-
     saveAndUpdate();
 }
 
@@ -1679,16 +1362,10 @@ function editBizExpense(id) {
 }
 
 function saveBizExpense(id) {
-    const item       = (data.bizExpenses || []).find(i => i.id === id);
-    const nameInput  = document.getElementById(`biz-name-${id}`);
-    const amtInput   = document.getElementById(`biz-amount-${id}`);
-    const newName    = nameInput ? nameInput.value.trim() : '';
-    const newAmount  = amtInput  ? parseFloat(amtInput.value) : NaN;
-
-    if (!newName || isNaN(newAmount) || newAmount <= 0) {
-        alert('Please enter a valid name and amount');
-        return;
-    }
+    const item      = (data.bizExpenses || []).find(i => i.id === id);
+    const newName   = document.getElementById(`biz-name-${id}`) ? document.getElementById(`biz-name-${id}`).value.trim() : '';
+    const newAmount = document.getElementById(`biz-amount-${id}`) ? parseFloat(document.getElementById(`biz-amount-${id}`).value) : NaN;
+    if (!newName || isNaN(newAmount) || newAmount <= 0) { alert('Please enter a valid name and amount'); return; }
     item.name    = newName;
     item.amount  = newAmount;
     item.editing = false;
@@ -1698,7 +1375,6 @@ function saveBizExpense(id) {
 function addBizCategory() {
     const name = document.getElementById('newBizCategoryName').value.trim();
     if (!name) { alert('Please enter a category name'); return; }
-
     if (!data.bizExpenseCategories) data.bizExpenseCategories = [{ id: 1, name: 'Unassigned', order: 0 }];
     const newId = Math.max(...data.bizExpenseCategories.map(c => c.id), 0) + 1;
     data.bizExpenseCategories.push({ id: newId, name, order: data.bizExpenseCategories.length });
@@ -1735,7 +1411,6 @@ function renderBizExpenses() {
     if (!data.bizExpenses)          data.bizExpenses = [];
     if (!data.bizCategoryVisibility) data.bizCategoryVisibility = {};
 
-    // Populate category select
     const select = document.getElementById('bizExpenseCategory');
     select.innerHTML = '<option value="">Select category...</option>' +
         data.bizExpenseCategories
@@ -1743,7 +1418,6 @@ function renderBizExpenses() {
             .map(c => `<option value="${c.id}">${c.name}</option>`)
             .join('');
 
-    // Render items grouped by category
     const list = document.getElementById('bizExpenseList');
     let html = '';
 
@@ -1755,11 +1429,6 @@ function renderBizExpenses() {
             const isVisible = data.bizCategoryVisibility[cat.id] !== false;
 
             if (items.length > 0 || cat.id === 1) {
-                const categoryOptions = data.bizExpenseCategories
-                    .sort((a, b) => a.order - b.order)
-                    .map(c => `<option value="${c.id}">${c.name}</option>`)
-                    .join('');
-
                 html += `
                 <div class="category-section">
                     <div class="category-header">
@@ -1810,7 +1479,6 @@ function renderBizExpenses() {
 
     list.innerHTML = html;
 
-    // Render category management list
     const mgmtList = document.getElementById('bizCategoriesList');
     if (mgmtList) {
         mgmtList.innerHTML = data.bizExpenseCategories
