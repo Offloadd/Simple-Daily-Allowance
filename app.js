@@ -1550,13 +1550,41 @@ function renderIncomeTracker() {
         billableInput.value = billable || '';
     }
 
-    // Year progress
-    const now   = new Date();
-    const start = new Date(now.getFullYear(), 0, 1);
-    const end   = new Date(now.getFullYear() + 1, 0, 1);
-    const pct   = Math.round(((now - start) / (end - start)) * 100);
-    document.getElementById('it-yearProgress').textContent  = pct + '%';
-    document.getElementById('it-progressFill').style.width  = pct + '%';
+    document.getElementById('it-dailyRateLabel').textContent = `$${combinedDaily.toFixed(2)} / day`;
+
+    // Stacked deposit bar
+    const MAX_DAILY = 100; // bar represents $0–$100/day
+    const bar = document.getElementById('it-stackedBar');
+    const tooltip = document.getElementById('it-barTooltip');
+    const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const totalForBar = bankTotal + billable;
+    const maxAmount = MAX_DAILY * 365;
+
+    // Build alternating segments — confirmed deposits first, billable always last
+    const segments = [];
+    sorted.forEach(e => segments.push({ ...e, isBillable: false }));
+    if (billable > 0) segments.push({ label: 'Billable estimate', amount: billable, date: '—', note: '', isBillable: true });
+
+    bar.innerHTML = segments.map((seg, i) => {
+        const pct = Math.min((seg.amount / maxAmount) * 100, 100);
+        const bg  = seg.isBillable ? '#667eea' : (i % 2 === 0 ? '#374151' : '#9ca3af');
+        const [yr,mo,dy] = (seg.date && seg.date !== '—') ? seg.date.split('-') : [null,null,null];
+        const dateStr = yr ? `${mo}/${dy}/${yr}` : '—';
+        const tip = encodeURIComponent(`${seg.source || seg.label} · $${seg.amount.toFixed(2)} · ${dateStr}${seg.note ? ' · ' + seg.note : ''}`);
+        return `<div style="width:${pct}%; background:${bg}; height:100%; cursor:pointer; min-width:${pct > 0 ? '3px' : '0'};"
+            onmouseenter="showItTip(event,'${tip}')"
+            onmouseleave="hideItTip()"></div>`;
+    }).join('');
+
+    // Position markers
+    const marker60 = document.getElementById('it-marker60');
+    const marker80 = document.getElementById('it-marker80');
+    const pct60 = (60 / MAX_DAILY) * 100;
+    const pct80 = (80 / MAX_DAILY) * 100;
+    marker60.style.left  = pct60 + '%';
+    marker60.style.display = '';
+    marker80.style.left  = pct80 + '%';
+    marker80.style.display = '';
 
     // Log list
     const list  = document.getElementById('it-logList');
@@ -1588,6 +1616,19 @@ function formatIncomeDate(d) {
     const [y, m, day] = d.split('-');
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return `${months[parseInt(m)-1]} ${parseInt(day)}, ${y}`;
+}
+
+function showItTip(event, encoded) {
+    const tip = document.getElementById('it-barTooltip');
+    tip.textContent = decodeURIComponent(encoded);
+    tip.style.display = 'block';
+    tip.style.left = Math.min(event.clientX + 12, window.innerWidth - 200) + 'px';
+    tip.style.top  = (event.clientY - 40) + 'px';
+}
+
+function hideItTip() {
+    const tip = document.getElementById('it-barTooltip');
+    if (tip) tip.style.display = 'none';
 }
 
 // ============================================================================
