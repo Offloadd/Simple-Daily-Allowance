@@ -35,7 +35,7 @@
             <!-- Proposed Purchases -->
             <div class="proposed-section">
                 <h2>
-                    <span>🛒 Proposed Purchases</span>
+                    <span id="title-proposedPurchases">🛒 Proposed Purchases</span>
                     <button class="toggle-btn" onclick="toggleSection('proposedPurchases')">Hide</button>
                 </h2>
                 <div id="proposedPurchasesContent" class="collapsible-content">
@@ -65,7 +65,7 @@
             <!-- Non Monthlies -->
             <div class="wishlist-section">
                 <h2>
-                    <span>⭐ Non Monthlies</span>
+                    <span id="title-wishList">⭐ Non Monthlies</span>
                     <button class="toggle-btn" onclick="toggleSection('wishList')">Hide</button>
                 </h2>
                 <div id="wishListContent" class="collapsible-content">
@@ -102,7 +102,7 @@
             <!-- Spending -->
             <div class="spending-section">
                 <h2>
-                    <span>💳 Record Spending</span>
+                    <span id="title-recordSpending">💳 Record Spending</span>
                     <button class="toggle-btn" onclick="toggleSection('recordSpending')">Hide</button>
                 </h2>
                 <div id="recordSpendingContent" class="collapsible-content">
@@ -122,7 +122,7 @@
             <!-- Income Tracker -->
             <div class="settings-section">
                 <h2>
-                    <span>📈 Income Tracker</span>
+                    <span id="title-incomeTracker">📈 Income Tracker</span>
                     <button class="toggle-btn" onclick="toggleSection('incomeTracker')">Hide</button>
                 </h2>
                 <div id="incomeTrackerContent" class="collapsible-content">
@@ -205,7 +205,7 @@
             <!-- Settings -->
             <div class="settings-section">
                 <h2>
-                    <span>⚙️ Settings</span>
+                    <span id="title-settings">⚙️ Settings</span>
                     <button class="toggle-btn" onclick="toggleSection('settings')">Hide</button>
                 </h2>
                 <div id="settingsContent" class="collapsible-content">
@@ -266,7 +266,18 @@
                         </div>
                     </div>
 
-                    <!-- Color Scheme Editor -->
+                    <!-- Section Titles -->
+                    <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
+                            <span>✏️ Section Titles</span>
+                            <button class="toggle-btn" onclick="toggleSection('sectionTitles')">Hide</button>
+                        </h3>
+                        <div id="sectionTitlesContent" class="collapsible-content">
+                            <div id="sectionTitlesList"></div>
+                        </div>
+                    </div>
+
+                                        <!-- Color Scheme Editor -->
                     <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
                         <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
                             <span>🎨 Available Balance Color Scheme</span>
