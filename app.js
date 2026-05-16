@@ -225,9 +225,9 @@ async function loadUserData() {
                     ...defaults.sectionVisibility,
                     ...(firestoreData.sectionVisibility || {})
                 },
-
-                incomeEntries:        firestoreData.incomeEntries        || defaults.incomeEntries,
-                billableTotal:        firestoreData.billableTotal        || defaults.billableTotal
+                categoryVisibility: firestoreData.categoryVisibility || {},
+                incomeEntries: Array.isArray(firestoreData.incomeEntries) ? firestoreData.incomeEntries : defaults.incomeEntries,
+                billableTotal: firestoreData.billableTotal != null ? firestoreData.billableTotal : defaults.billableTotal
             };
         } else {
             console.log('No data in Firestore, using defaults');
