@@ -1208,7 +1208,7 @@ function addIncomeEntry() {
     const date   = document.getElementById('it-date').value;
     const note   = document.getElementById('it-note').value.trim();
     if (!source) { alert('Please enter a source.'); return; }
-    if (isNaN(amount) || amount === 0) { alert('Please enter a valid amount.'); return; }
+    if (isNaN(amount)) { alert('Please enter a valid amount.'); return; }
     if (!date) { alert('Please select a date.'); return; }
     if (!data.incomeEntries) data.incomeEntries = [];
     data.incomeEntries.push({ id: Date.now().toString(), source, amount, date, note });
