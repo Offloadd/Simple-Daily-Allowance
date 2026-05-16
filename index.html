@@ -181,9 +181,14 @@
                     </div>
 
                     <!-- Add Entry -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="font-size:0.9em; color:#6b7280; font-weight:600;">Entries</span>
+                        <button class="toggle-btn" onclick="toggleSection('incomeEntries')">Hide</button>
+                    </div>
+                    <div id="incomeEntriesContent" class="collapsible-content">
                     <div class="input-group" style="margin-bottom:15px;">
                         <input type="text" id="it-source" placeholder="Source (e.g. ESAM, client…)">
-                        <input type="number" id="it-amount" placeholder="Amount" step="0.01" min="0">
+                        <input type="number" id="it-amount" placeholder="Amount" step="0.01">
                         <input type="date" id="it-date">
                         <input type="text" id="it-note" placeholder="Note (optional)">
                         <button onclick="addIncomeEntry()">+ Add</button>
@@ -192,6 +197,7 @@
                     <!-- Log Table -->
                     <div id="it-empty" style="color:#9ca3af; font-style:italic; padding:10px 0; display:none;">No entries yet.</div>
                     <ul class="item-list" id="it-logList"></ul>
+                    </div>
 
                 </div>
             </div>
