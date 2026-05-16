@@ -99,43 +99,6 @@
                 </div>
             </div>
 
-            <!-- Business Expenses -->
-            <div class="wishlist-section">
-                <h2>
-                    <span>🧾 Business Expenses</span>
-                    <button class="toggle-btn" onclick="toggleSection('bizExpenses')">Hide</button>
-                </h2>
-                <div id="bizExpensesContent" class="collapsible-content">
-                    <!-- Add Item -->
-                    <div class="input-group">
-                        <input type="text" id="bizExpenseName" placeholder="Item name">
-                        <input type="number" id="bizExpenseAmount" placeholder="Amount" step="0.01" min="0">
-                        <select id="bizExpenseCategory" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1em;">
-                            <option value="">Select category...</option>
-                        </select>
-                        <button onclick="addBizExpense()">Add Item</button>
-                    </div>
-
-                    <!-- Items by Category -->
-                    <div id="bizExpenseList"></div>
-
-                    <!-- Category Management -->
-                    <div style="margin-top: 30px;">
-                        <h3 style="color: #667eea; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                            <span>Manage Categories</span>
-                            <button class="toggle-btn" onclick="toggleSection('bizCategoryManagement')">Hide</button>
-                        </h3>
-                        <div id="bizCategoryManagementContent" class="collapsible-content">
-                            <div class="input-group" style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <input type="text" id="newBizCategoryName" placeholder="New category name">
-                                <button onclick="addBizCategory()">Add Category</button>
-                            </div>
-                            <div id="bizCategoriesList"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Spending -->
             <div class="spending-section">
                 <h2>
