@@ -312,6 +312,7 @@ function getDefaultData() {
             categoryManagement: true,
             colorScheme: true,
             incomeTracker: true,
+            incomeEntries: true,
         },
         categoryVisibility: {},
         incomeEntries: [],
@@ -343,6 +344,7 @@ function updateSectionVisibility() {
         { name: 'categoryManagement', contentId: 'categoryManagementContent' },
         { name: 'colorScheme', contentId: 'colorSchemeContent' },
         { name: 'incomeTracker', contentId: 'incomeTrackerContent' },
+        { name: 'incomeEntries', contentId: 'incomeEntriesContent' },
     ];
     
     sections.forEach(section => {
