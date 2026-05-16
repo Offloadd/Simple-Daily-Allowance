@@ -339,7 +339,9 @@ let data = getDefaultData();
 function toggleSection(sectionName) {
     data.sectionVisibility[sectionName] = !data.sectionVisibility[sectionName];
     updateSectionVisibility();
-    saveData();
+    // Use update instead of set so we only write the visibility field
+    const docRef = getUserDocRef();
+    if (docRef) docRef.update({ sectionVisibility: data.sectionVisibility });
 }
 
 function updateSectionVisibility() {
@@ -716,7 +718,8 @@ function toggleCategory(categoryId) {
         const isHidden = element.classList.contains('hidden');
         data.categoryVisibility[categoryId] = !isHidden;
         if (button) button.textContent = isHidden ? 'Show' : 'Hide';
-        saveData();
+        const docRef = getUserDocRef();
+        if (docRef) docRef.update({ categoryVisibility: data.categoryVisibility });
     }
 }
 
