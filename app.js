@@ -227,7 +227,8 @@ async function loadUserData() {
                 },
                 categoryVisibility: firestoreData.categoryVisibility || {},
                 incomeEntries: Array.isArray(firestoreData.incomeEntries) ? firestoreData.incomeEntries : defaults.incomeEntries,
-                billableTotal: firestoreData.billableTotal != null ? firestoreData.billableTotal : defaults.billableTotal
+                billableTotal: firestoreData.billableTotal != null ? firestoreData.billableTotal : defaults.billableTotal,
+                sectionTitles: { ...defaults.sectionTitles, ...(firestoreData.sectionTitles || {}) }
             };
         } else {
             console.log('No data in Firestore, using defaults');
@@ -313,10 +314,18 @@ function getDefaultData() {
             colorScheme: true,
             incomeTracker: true,
             incomeEntries: true,
+            sectionTitles: true,
         },
         categoryVisibility: {},
         incomeEntries: [],
         billableTotal: 0,
+        sectionTitles: {
+            proposedPurchases: '🛒 Proposed Purchases',
+            wishList: '⭐ Non Monthlies',
+            recordSpending: '💳 Record Spending',
+            incomeTracker: '📈 Income Tracker',
+            settings: '⚙️ Settings'
+        },
 
     };
 }
@@ -345,6 +354,7 @@ function updateSectionVisibility() {
         { name: 'colorScheme', contentId: 'colorSchemeContent' },
         { name: 'incomeTracker', contentId: 'incomeTrackerContent' },
         { name: 'incomeEntries', contentId: 'incomeEntriesContent' },
+        { name: 'sectionTitles', contentId: 'sectionTitlesContent' },
     ];
     
     sections.forEach(section => {
@@ -779,6 +789,7 @@ function updateDisplay() {
     renderAllowanceLog();
     renderColorScheme();
     renderIncomeTracker();
+    renderSectionTitles();
     updateSectionVisibility();
 }
 
@@ -1322,3 +1333,50 @@ function hideItTip() {
     if (tip) tip.style.display = 'none';
 }
 
+
+// ============================================================================
+// SECTION TITLES FUNCTIONS
+// ============================================================================
+
+function renderSectionTitles() {
+    if (!data.sectionTitles) data.sectionTitles = getDefaultData().sectionTitles;
+
+    // Update visible section title spans
+    Object.entries(data.sectionTitles).forEach(([key, title]) => {
+        const el = document.getElementById(`title-${key}`);
+        if (el) el.textContent = title;
+    });
+
+    // Render editor list
+    const list = document.getElementById('sectionTitlesList');
+    if (!list) return;
+
+    const defaults = getDefaultData().sectionTitles;
+    list.innerHTML = Object.entries(data.sectionTitles).map(([key, title]) => `
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <span style="color:#6b7280; font-size:0.85em; min-width:140px;">${defaults[key] || key}</span>
+            <input type="text" id="section-title-${key}" value="${title}"
+                style="flex:1; padding:8px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95em;">
+            <button class="save-btn" onclick="saveSectionTitle('${key}')">Save</button>
+            <button class="btn-reset" onclick="resetSectionTitle('${key}')"
+                style="padding:8px 12px; background:#f3f4f6; border:none; border-radius:6px; cursor:pointer; font-size:0.85em; color:#6b7280;">Reset</button>
+        </div>
+    `).join('');
+}
+
+function saveSectionTitle(key) {
+    const input = document.getElementById(`section-title-${key}`);
+    if (!input) return;
+    const newTitle = input.value.trim();
+    if (!newTitle) { alert('Please enter a title'); return; }
+    if (!data.sectionTitles) data.sectionTitles = getDefaultData().sectionTitles;
+    data.sectionTitles[key] = newTitle;
+    saveAndUpdate();
+}
+
+function resetSectionTitle(key) {
+    const defaults = getDefaultData().sectionTitles;
+    if (!data.sectionTitles) data.sectionTitles = getDefaultData().sectionTitles;
+    data.sectionTitles[key] = defaults[key];
+    saveAndUpdate();
+}
