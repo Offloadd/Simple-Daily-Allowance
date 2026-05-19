@@ -35,7 +35,7 @@
             <!-- Proposed Purchases -->
             <div class="proposed-section">
                 <h2>
-                    <span>🛒 Proposed Purchases</span>
+                    <span id="title-proposedPurchases">🛒 Proposed Purchases</span>
                     <button class="toggle-btn" onclick="toggleSection('proposedPurchases')">Hide</button>
                 </h2>
                 <div id="proposedPurchasesContent" class="collapsible-content">
@@ -65,7 +65,7 @@
             <!-- Non Monthlies -->
             <div class="wishlist-section">
                 <h2>
-                    <span>⭐ Non Monthlies</span>
+                    <span id="title-wishList">⭐ Non Monthlies</span>
                     <button class="toggle-btn" onclick="toggleSection('wishList')">Hide</button>
                 </h2>
                 <div id="wishListContent" class="collapsible-content">
@@ -99,47 +99,10 @@
                 </div>
             </div>
 
-            <!-- Business Expenses -->
-            <div class="wishlist-section">
-                <h2>
-                    <span>🧾 Business Expenses</span>
-                    <button class="toggle-btn" onclick="toggleSection('bizExpenses')">Hide</button>
-                </h2>
-                <div id="bizExpensesContent" class="collapsible-content">
-                    <!-- Add Item -->
-                    <div class="input-group">
-                        <input type="text" id="bizExpenseName" placeholder="Item name">
-                        <input type="number" id="bizExpenseAmount" placeholder="Amount" step="0.01" min="0">
-                        <select id="bizExpenseCategory" style="padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1em;">
-                            <option value="">Select category...</option>
-                        </select>
-                        <button onclick="addBizExpense()">Add Item</button>
-                    </div>
-
-                    <!-- Items by Category -->
-                    <div id="bizExpenseList"></div>
-
-                    <!-- Category Management -->
-                    <div style="margin-top: 30px;">
-                        <h3 style="color: #667eea; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                            <span>Manage Categories</span>
-                            <button class="toggle-btn" onclick="toggleSection('bizCategoryManagement')">Hide</button>
-                        </h3>
-                        <div id="bizCategoryManagementContent" class="collapsible-content">
-                            <div class="input-group" style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <input type="text" id="newBizCategoryName" placeholder="New category name">
-                                <button onclick="addBizCategory()">Add Category</button>
-                            </div>
-                            <div id="bizCategoriesList"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Spending -->
             <div class="spending-section">
                 <h2>
-                    <span>💳 Record Spending</span>
+                    <span id="title-recordSpending">💳 Record Spending</span>
                     <button class="toggle-btn" onclick="toggleSection('recordSpending')">Hide</button>
                 </h2>
                 <div id="recordSpendingContent" class="collapsible-content">
@@ -159,7 +122,7 @@
             <!-- Income Tracker -->
             <div class="settings-section">
                 <h2>
-                    <span>📈 Income Tracker</span>
+                    <span id="title-incomeTracker">📈 Income Tracker</span>
                     <button class="toggle-btn" onclick="toggleSection('incomeTracker')">Hide</button>
                 </h2>
                 <div id="incomeTrackerContent" class="collapsible-content">
@@ -218,9 +181,14 @@
                     </div>
 
                     <!-- Add Entry -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="font-size:0.9em; color:#6b7280; font-weight:600;">Entries</span>
+                        <button class="toggle-btn" onclick="toggleSection('incomeEntries')">Hide</button>
+                    </div>
+                    <div id="incomeEntriesContent" class="collapsible-content">
                     <div class="input-group" style="margin-bottom:15px;">
                         <input type="text" id="it-source" placeholder="Source (e.g. ESAM, client…)">
-                        <input type="number" id="it-amount" placeholder="Amount" step="0.01" min="0">
+                        <input type="number" id="it-amount" placeholder="Amount" step="0.01">
                         <input type="date" id="it-date">
                         <input type="text" id="it-note" placeholder="Note (optional)">
                         <button onclick="addIncomeEntry()">+ Add</button>
@@ -229,6 +197,7 @@
                     <!-- Log Table -->
                     <div id="it-empty" style="color:#9ca3af; font-style:italic; padding:10px 0; display:none;">No entries yet.</div>
                     <ul class="item-list" id="it-logList"></ul>
+                    </div>
 
                 </div>
             </div>
@@ -236,7 +205,7 @@
             <!-- Settings -->
             <div class="settings-section">
                 <h2>
-                    <span>⚙️ Settings</span>
+                    <span id="title-settings">⚙️ Settings</span>
                     <button class="toggle-btn" onclick="toggleSection('settings')">Hide</button>
                 </h2>
                 <div id="settingsContent" class="collapsible-content">
@@ -297,7 +266,18 @@
                         </div>
                     </div>
 
-                    <!-- Color Scheme Editor -->
+                    <!-- Section Titles -->
+                    <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
+                            <span>✏️ Section Titles</span>
+                            <button class="toggle-btn" onclick="toggleSection('sectionTitles')">Hide</button>
+                        </h3>
+                        <div id="sectionTitlesContent" class="collapsible-content">
+                            <div id="sectionTitlesList"></div>
+                        </div>
+                    </div>
+
+                                        <!-- Color Scheme Editor -->
                     <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
                         <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em; display: flex; justify-content: space-between; align-items: center;">
                             <span>🎨 Available Balance Color Scheme</span>
