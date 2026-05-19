@@ -955,7 +955,7 @@ function renderWishlist() {
                                                     ${categoryOptions}
                                                 </select>
                                             </div>
-                                            <span class="item-amount">$${item.amount.toFixed(2)}</span>
+                                            <span class="item-amount" style="color:#f87171;">-$${item.amount.toFixed(2)}</span>
                                             <div class="item-buttons">
                                                 <button class="move-btn" onclick="moveWishlistToProposed(${item.id})">→ Proposed</button>
                                                 <button class="edit-btn" onclick="editWishlist(${item.id})">Edit</button>
@@ -975,7 +975,7 @@ function renderWishlist() {
                                                 <div class="item-name" style="color:#10b981;">↓ ${s.name}</div>
                                                 <div class="item-date">${mo}/${dy}/${yr}</div>
                                             </div>
-                                            <span class="item-amount" style="color:#10b981;">-$${s.amount.toFixed(2)}</span>
+                                            <span class="item-amount" style="color:#10b981;">+$${s.amount.toFixed(2)}</span>
                                         </div>`;
                                     }).join('')}
                                 </div>` : ''}
@@ -1234,7 +1234,30 @@ function addIncomeEntry() {
     saveAndUpdate();
 }
 
-function deleteIncomeEntry(id) {
+function editIncomeEntry(id) {
+    const entry = (data.incomeEntries || []).find(e => e.id === id);
+    if (!entry) return;
+    entry.editing = true;
+    renderIncomeTracker();
+}
+
+function saveIncomeEntry(id) {
+    const entry = (data.incomeEntries || []).find(e => e.id === id);
+    if (!entry) return;
+    const source = document.getElementById(`inc-source-${id}`).value.trim();
+    const amount = parseFloat(document.getElementById(`inc-amount-${id}`).value);
+    const date   = document.getElementById(`inc-date-${id}`).value;
+    const note   = document.getElementById(`inc-note-${id}`).value.trim();
+    if (!source) { alert('Please enter a source.'); return; }
+    if (isNaN(amount)) { alert('Please enter a valid amount.'); return; }
+    if (!date) { alert('Please select a date.'); return; }
+    entry.source  = source;
+    entry.amount  = amount;
+    entry.date    = date;
+    entry.note    = note;
+    entry.editing = false;
+    saveAndUpdate();
+}
     data.incomeEntries = (data.incomeEntries || []).filter(e => e.id !== id);
     saveAndUpdate();
 }
@@ -1303,17 +1326,36 @@ function renderIncomeTracker() {
     empty.style.display = 'none';
 
     const sortedDesc = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
-    list.innerHTML = sortedDesc.map(e => `
+    list.innerHTML = sortedDesc.map(e => {
+        if (e.editing) {
+            return `
+        <li class="item editing">
+            <div class="item-details">
+                <input type="text" id="inc-source-${e.id}" value="${e.source}" class="edit-name-input" placeholder="Source">
+                <input type="number" id="inc-amount-${e.id}" value="${e.amount}" class="edit-amount-input" step="0.01">
+                <input type="date" id="inc-date-${e.id}" value="${e.date}" style="padding:5px;border:2px solid #667eea;border-radius:5px;">
+                <input type="text" id="inc-note-${e.id}" value="${e.note||''}" class="edit-name-input" placeholder="Note">
+            </div>
+            <div class="item-buttons">
+                <button class="save-btn" onclick="saveIncomeEntry('${e.id}')">Save</button>
+                <button class="delete-btn" onclick="deleteIncomeEntry('${e.id}')">Delete</button>
+            </div>
+        </li>`;
+        } else {
+            return `
         <li class="item">
             <div class="item-details">
                 <div class="item-name">${e.source}${e.note ? ' <span style="color:#9ca3af;font-size:0.85em;">— ' + e.note + '</span>' : ''}</div>
                 <div style="color:#9ca3af; font-size:0.8em;">${formatIncomeDate(e.date)}</div>
             </div>
-            <span class="item-amount">$${e.amount.toFixed(2)}</span>
+            <span class="item-amount" style="color:${e.amount < 0 ? '#f87171' : 'inherit'}">$${e.amount.toFixed(2)}</span>
             <div class="item-buttons">
+                <button class="edit-btn" onclick="editIncomeEntry('${e.id}')">Edit</button>
                 <button class="delete-btn" onclick="deleteIncomeEntry('${e.id}')">Delete</button>
             </div>
-        </li>`).join('');
+        </li>`;
+        }
+    }).join('');
 }
 
 function formatIncomeDate(d) {
