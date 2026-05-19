@@ -225,10 +225,14 @@ async function loadUserData() {
                     ...defaults.sectionVisibility,
                     ...(firestoreData.sectionVisibility || {})
                 },
-                categoryVisibility: firestoreData.categoryVisibility || {},
-                incomeEntries: Array.isArray(firestoreData.incomeEntries) ? firestoreData.incomeEntries : defaults.incomeEntries,
-                billableTotal: firestoreData.billableTotal != null ? firestoreData.billableTotal : defaults.billableTotal,
-                sectionTitles: { ...defaults.sectionTitles, ...(firestoreData.sectionTitles || {}) }
+                bizCategoryVisibility: {
+                    ...defaults.bizCategoryVisibility,
+                    ...(firestoreData.bizCategoryVisibility || {})
+                },
+                bizExpenseCategories: firestoreData.bizExpenseCategories || defaults.bizExpenseCategories,
+                bizExpenses:          firestoreData.bizExpenses          || defaults.bizExpenses,
+                incomeEntries:        firestoreData.incomeEntries        || defaults.incomeEntries,
+                billableTotal:        firestoreData.billableTotal        || defaults.billableTotal
             };
         } else {
             console.log('No data in Firestore, using defaults');
@@ -313,20 +317,17 @@ function getDefaultData() {
             categoryManagement: true,
             colorScheme: true,
             incomeTracker: true,
-            incomeEntries: true,
-            sectionTitles: true,
+            bizExpenses: true,
+            bizCategoryManagement: true
         },
         categoryVisibility: {},
         incomeEntries: [],
         billableTotal: 0,
-        sectionTitles: {
-            proposedPurchases: '🛒 Proposed Purchases',
-            wishList: '⭐ Non Monthlies',
-            recordSpending: '💳 Record Spending',
-            incomeTracker: '📈 Income Tracker',
-            settings: '⚙️ Settings'
-        },
-
+        bizExpenses: [],
+        bizExpenseCategories: [
+            { id: 1, name: 'Unassigned', order: 0 }
+        ],
+        bizCategoryVisibility: {}
     };
 }
 
@@ -339,9 +340,7 @@ let data = getDefaultData();
 function toggleSection(sectionName) {
     data.sectionVisibility[sectionName] = !data.sectionVisibility[sectionName];
     updateSectionVisibility();
-    // Use update instead of set so we only write the visibility field
-    const docRef = getUserDocRef();
-    if (docRef) docRef.update({ sectionVisibility: data.sectionVisibility });
+    saveData();
 }
 
 function updateSectionVisibility() {
@@ -355,8 +354,8 @@ function updateSectionVisibility() {
         { name: 'categoryManagement', contentId: 'categoryManagementContent' },
         { name: 'colorScheme', contentId: 'colorSchemeContent' },
         { name: 'incomeTracker', contentId: 'incomeTrackerContent' },
-        { name: 'incomeEntries', contentId: 'incomeEntriesContent' },
-        { name: 'sectionTitles', contentId: 'sectionTitlesContent' },
+        { name: 'bizExpenses', contentId: 'bizExpensesContent' },
+        { name: 'bizCategoryManagement', contentId: 'bizCategoryManagementContent' }
     ];
     
     sections.forEach(section => {
@@ -718,8 +717,7 @@ function toggleCategory(categoryId) {
         const isHidden = element.classList.contains('hidden');
         data.categoryVisibility[categoryId] = !isHidden;
         if (button) button.textContent = isHidden ? 'Show' : 'Hide';
-        const docRef = getUserDocRef();
-        if (docRef) docRef.update({ categoryVisibility: data.categoryVisibility });
+        saveData();
     }
 }
 
@@ -792,7 +790,7 @@ function updateDisplay() {
     renderAllowanceLog();
     renderColorScheme();
     renderIncomeTracker();
-    renderSectionTitles();
+    renderBizExpenses();
     updateSectionVisibility();
 }
 
@@ -955,7 +953,7 @@ function renderWishlist() {
                                                     ${categoryOptions}
                                                 </select>
                                             </div>
-                                            <span class="item-amount" style="color:#f87171;">-$${item.amount.toFixed(2)}</span>
+                                            <span class="item-amount">$${item.amount.toFixed(2)}</span>
                                             <div class="item-buttons">
                                                 <button class="move-btn" onclick="moveWishlistToProposed(${item.id})">→ Proposed</button>
                                                 <button class="edit-btn" onclick="editWishlist(${item.id})">Edit</button>
@@ -975,7 +973,7 @@ function renderWishlist() {
                                                 <div class="item-name" style="color:#10b981;">↓ ${s.name}</div>
                                                 <div class="item-date">${mo}/${dy}/${yr}</div>
                                             </div>
-                                            <span class="item-amount" style="color:#10b981;">+$${s.amount.toFixed(2)}</span>
+                                            <span class="item-amount" style="color:#10b981;">-$${s.amount.toFixed(2)}</span>
                                         </div>`;
                                     }).join('')}
                                 </div>` : ''}
@@ -1224,7 +1222,7 @@ function addIncomeEntry() {
     const date   = document.getElementById('it-date').value;
     const note   = document.getElementById('it-note').value.trim();
     if (!source) { alert('Please enter a source.'); return; }
-    if (isNaN(amount)) { alert('Please enter a valid amount.'); return; }
+    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
     if (!date) { alert('Please select a date.'); return; }
     if (!data.incomeEntries) data.incomeEntries = [];
     data.incomeEntries.push({ id: Date.now().toString(), source, amount, date, note });
@@ -1234,30 +1232,7 @@ function addIncomeEntry() {
     saveAndUpdate();
 }
 
-function editIncomeEntry(id) {
-    const entry = (data.incomeEntries || []).find(e => e.id === id);
-    if (!entry) return;
-    entry.editing = true;
-    renderIncomeTracker();
-}
-
-function saveIncomeEntry(id) {
-    const entry = (data.incomeEntries || []).find(e => e.id === id);
-    if (!entry) return;
-    const source = document.getElementById(`inc-source-${id}`).value.trim();
-    const amount = parseFloat(document.getElementById(`inc-amount-${id}`).value);
-    const date   = document.getElementById(`inc-date-${id}`).value;
-    const note   = document.getElementById(`inc-note-${id}`).value.trim();
-    if (!source) { alert('Please enter a source.'); return; }
-    if (isNaN(amount)) { alert('Please enter a valid amount.'); return; }
-    if (!date) { alert('Please select a date.'); return; }
-    entry.source  = source;
-    entry.amount  = amount;
-    entry.date    = date;
-    entry.note    = note;
-    entry.editing = false;
-    saveAndUpdate();
-}
+function deleteIncomeEntry(id) {
     data.incomeEntries = (data.incomeEntries || []).filter(e => e.id !== id);
     saveAndUpdate();
 }
@@ -1326,36 +1301,17 @@ function renderIncomeTracker() {
     empty.style.display = 'none';
 
     const sortedDesc = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
-    list.innerHTML = sortedDesc.map(e => {
-        if (e.editing) {
-            return `
-        <li class="item editing">
-            <div class="item-details">
-                <input type="text" id="inc-source-${e.id}" value="${e.source}" class="edit-name-input" placeholder="Source">
-                <input type="number" id="inc-amount-${e.id}" value="${e.amount}" class="edit-amount-input" step="0.01">
-                <input type="date" id="inc-date-${e.id}" value="${e.date}" style="padding:5px;border:2px solid #667eea;border-radius:5px;">
-                <input type="text" id="inc-note-${e.id}" value="${e.note||''}" class="edit-name-input" placeholder="Note">
-            </div>
-            <div class="item-buttons">
-                <button class="save-btn" onclick="saveIncomeEntry('${e.id}')">Save</button>
-                <button class="delete-btn" onclick="deleteIncomeEntry('${e.id}')">Delete</button>
-            </div>
-        </li>`;
-        } else {
-            return `
+    list.innerHTML = sortedDesc.map(e => `
         <li class="item">
             <div class="item-details">
                 <div class="item-name">${e.source}${e.note ? ' <span style="color:#9ca3af;font-size:0.85em;">— ' + e.note + '</span>' : ''}</div>
                 <div style="color:#9ca3af; font-size:0.8em;">${formatIncomeDate(e.date)}</div>
             </div>
-            <span class="item-amount" style="color:${e.amount < 0 ? '#f87171' : 'inherit'}">$${e.amount.toFixed(2)}</span>
+            <span class="item-amount">$${e.amount.toFixed(2)}</span>
             <div class="item-buttons">
-                <button class="edit-btn" onclick="editIncomeEntry('${e.id}')">Edit</button>
                 <button class="delete-btn" onclick="deleteIncomeEntry('${e.id}')">Delete</button>
             </div>
-        </li>`;
-        }
-    }).join('');
+        </li>`).join('');
 }
 
 function formatIncomeDate(d) {
@@ -1378,50 +1334,161 @@ function hideItTip() {
     if (tip) tip.style.display = 'none';
 }
 
-
 // ============================================================================
-// SECTION TITLES FUNCTIONS
+// BUSINESS EXPENSES FUNCTIONS
 // ============================================================================
 
-function renderSectionTitles() {
-    if (!data.sectionTitles) data.sectionTitles = getDefaultData().sectionTitles;
-
-    // Update visible section title spans
-    Object.entries(data.sectionTitles).forEach(([key, title]) => {
-        const el = document.getElementById(`title-${key}`);
-        if (el) el.textContent = title;
-    });
-
-    // Render editor list
-    const list = document.getElementById('sectionTitlesList');
-    if (!list) return;
-
-    const defaults = getDefaultData().sectionTitles;
-    list.innerHTML = Object.entries(data.sectionTitles).map(([key, title]) => `
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-            <span style="color:#6b7280; font-size:0.85em; min-width:140px;">${defaults[key] || key}</span>
-            <input type="text" id="section-title-${key}" value="${title}"
-                style="flex:1; padding:8px; border:2px solid #e5e7eb; border-radius:8px; font-size:0.95em;">
-            <button class="save-btn" onclick="saveSectionTitle('${key}')">Save</button>
-            <button class="btn-reset" onclick="resetSectionTitle('${key}')"
-                style="padding:8px 12px; background:#f3f4f6; border:none; border-radius:6px; cursor:pointer; font-size:0.85em; color:#6b7280;">Reset</button>
-        </div>
-    `).join('');
-}
-
-function saveSectionTitle(key) {
-    const input = document.getElementById(`section-title-${key}`);
-    if (!input) return;
-    const newTitle = input.value.trim();
-    if (!newTitle) { alert('Please enter a title'); return; }
-    if (!data.sectionTitles) data.sectionTitles = getDefaultData().sectionTitles;
-    data.sectionTitles[key] = newTitle;
+function addBizExpense() {
+    const name       = document.getElementById('bizExpenseName').value.trim();
+    const amount     = parseFloat(document.getElementById('bizExpenseAmount').value);
+    const categoryId = parseInt(document.getElementById('bizExpenseCategory').value);
+    if (!name || !amount || amount <= 0 || !categoryId) { alert('Please fill in all fields including category'); return; }
+    if (!data.bizExpenses) data.bizExpenses = [];
+    data.bizExpenses.push({ id: Date.now(), name, amount, categoryId });
+    document.getElementById('bizExpenseName').value    = '';
+    document.getElementById('bizExpenseAmount').value  = '';
+    document.getElementById('bizExpenseCategory').value = '';
     saveAndUpdate();
 }
 
-function resetSectionTitle(key) {
-    const defaults = getDefaultData().sectionTitles;
-    if (!data.sectionTitles) data.sectionTitles = getDefaultData().sectionTitles;
-    data.sectionTitles[key] = defaults[key];
+function deleteBizExpense(id) {
+    data.bizExpenses = (data.bizExpenses || []).filter(item => item.id !== id);
     saveAndUpdate();
+}
+
+function editBizExpense(id) {
+    const item = (data.bizExpenses || []).find(i => i.id === id);
+    if (item) { item.editing = true; updateDisplay(); }
+}
+
+function saveBizExpense(id) {
+    const item      = (data.bizExpenses || []).find(i => i.id === id);
+    const newName   = document.getElementById(`biz-name-${id}`) ? document.getElementById(`biz-name-${id}`).value.trim() : '';
+    const newAmount = document.getElementById(`biz-amount-${id}`) ? parseFloat(document.getElementById(`biz-amount-${id}`).value) : NaN;
+    if (!newName || isNaN(newAmount) || newAmount <= 0) { alert('Please enter a valid name and amount'); return; }
+    item.name    = newName;
+    item.amount  = newAmount;
+    item.editing = false;
+    saveAndUpdate();
+}
+
+function addBizCategory() {
+    const name = document.getElementById('newBizCategoryName').value.trim();
+    if (!name) { alert('Please enter a category name'); return; }
+    if (!data.bizExpenseCategories) data.bizExpenseCategories = [{ id: 1, name: 'Unassigned', order: 0 }];
+    const newId = Math.max(...data.bizExpenseCategories.map(c => c.id), 0) + 1;
+    data.bizExpenseCategories.push({ id: newId, name, order: data.bizExpenseCategories.length });
+    document.getElementById('newBizCategoryName').value = '';
+    saveAndUpdate();
+}
+
+function deleteBizCategory(id) {
+    if (id === 1) { alert('Cannot delete the Unassigned category'); return; }
+    if (!data.bizExpenses) data.bizExpenses = [];
+    data.bizExpenses.forEach(item => { if (item.categoryId === id) item.categoryId = 1; });
+    data.bizExpenseCategories = data.bizExpenseCategories.filter(c => c.id !== id);
+    saveAndUpdate();
+}
+
+function toggleBizCategory(categoryId) {
+    if (!data.bizCategoryVisibility) data.bizCategoryVisibility = {};
+    const el  = document.getElementById(`biz-cat-items-${categoryId}`);
+    const btn = document.getElementById(`biz-cat-toggle-${categoryId}`);
+    const isHidden = el.classList.contains('hidden');
+    el.classList.toggle('hidden');
+    btn.textContent = isHidden ? 'Hide' : 'Show';
+    data.bizCategoryVisibility[categoryId] = isHidden;
+    saveData();
+}
+
+function changeBizItemCategory(itemId, newCategoryId) {
+    const item = (data.bizExpenses || []).find(i => i.id === itemId);
+    if (item) { item.categoryId = parseInt(newCategoryId); saveAndUpdate(); }
+}
+
+function renderBizExpenses() {
+    if (!data.bizExpenseCategories) data.bizExpenseCategories = [{ id: 1, name: 'Unassigned', order: 0 }];
+    if (!data.bizExpenses)          data.bizExpenses = [];
+    if (!data.bizCategoryVisibility) data.bizCategoryVisibility = {};
+
+    const select = document.getElementById('bizExpenseCategory');
+    select.innerHTML = '<option value="">Select category...</option>' +
+        data.bizExpenseCategories
+            .sort((a, b) => a.order - b.order)
+            .map(c => `<option value="${c.id}">${c.name}</option>`)
+            .join('');
+
+    const list = document.getElementById('bizExpenseList');
+    let html = '';
+
+    data.bizExpenseCategories
+        .sort((a, b) => a.order - b.order)
+        .forEach(cat => {
+            const items     = data.bizExpenses.filter(i => i.categoryId === cat.id);
+            const catTotal  = items.reduce((s, i) => s + i.amount, 0);
+            const isVisible = data.bizCategoryVisibility[cat.id] !== false;
+
+            if (items.length > 0 || cat.id === 1) {
+                html += `
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="category-title" onclick="toggleBizCategory(${cat.id})" style="cursor:pointer;flex:1;">${cat.name} (${items.length})</div>
+                        <span style="font-weight:600;color:#667eea;margin-right:10px;">$${catTotal.toFixed(2)}</span>
+                        <button id="biz-cat-toggle-${cat.id}" class="toggle-btn" onclick="toggleBizCategory(${cat.id});event.stopPropagation();" style="padding:5px 12px;font-size:0.85em;">${isVisible ? 'Hide' : 'Show'}</button>
+                    </div>
+                    <div id="biz-cat-items-${cat.id}" class="category-items${isVisible ? '' : ' hidden'}">
+                        ${items.map(item => {
+                            const catOpts = data.bizExpenseCategories
+                                .sort((a,b) => a.order - b.order)
+                                .map(c => `<option value="${c.id}" ${c.id === item.categoryId ? 'selected' : ''}>${c.name}</option>`)
+                                .join('');
+                            if (item.editing) {
+                                return `
+                                <div class="item category-item editing">
+                                    <div class="item-details">
+                                        <input type="text" id="biz-name-${item.id}" class="edit-name-input" value="${item.name}">
+                                        <input type="number" id="biz-amount-${item.id}" class="edit-amount-input" value="${item.amount}" step="0.01" min="0">
+                                    </div>
+                                    <div class="item-buttons">
+                                        <button class="save-btn" onclick="saveBizExpense(${item.id})">Save</button>
+                                        <button class="delete-btn" onclick="deleteBizExpense(${item.id})">Delete</button>
+                                    </div>
+                                </div>`;
+                            } else {
+                                return `
+                                <div class="item category-item">
+                                    <div class="item-details">
+                                        <div class="item-name">${item.name}</div>
+                                        <select onchange="changeBizItemCategory(${item.id}, this.value)" style="padding:5px;border:1px solid #667eea;border-radius:5px;font-size:0.85em;margin-top:5px;">
+                                            ${catOpts}
+                                        </select>
+                                    </div>
+                                    <span class="item-amount">$${item.amount.toFixed(2)}</span>
+                                    <div class="item-buttons">
+                                        <button class="edit-btn" onclick="editBizExpense(${item.id})">Edit</button>
+                                        <button class="delete-btn" onclick="deleteBizExpense(${item.id})">Delete</button>
+                                    </div>
+                                </div>`;
+                            }
+                        }).join('')}
+                        ${items.length === 0 ? '<div style="padding:10px;color:#6b7280;font-style:italic;">No items in this category</div>' : ''}
+                    </div>
+                </div>`;
+            }
+        });
+
+    list.innerHTML = html;
+
+    const mgmtList = document.getElementById('bizCategoriesList');
+    if (mgmtList) {
+        mgmtList.innerHTML = data.bizExpenseCategories
+            .sort((a, b) => a.order - b.order)
+            .map(c => `
+            <div class="item">
+                <div class="item-details"><div class="item-name">${c.name}</div></div>
+                <div class="item-buttons">
+                    ${c.id !== 1 ? `<button class="delete-btn" onclick="deleteBizCategory(${c.id})">Delete</button>` : ''}
+                </div>
+            </div>`).join('');
+    }
 }
