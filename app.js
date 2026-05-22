@@ -277,8 +277,8 @@ function updateSectionVisibility() {
         { name: 'incomeTracker',        contentId: 'incomeTrackerContent' },
         { name: 'incomeEntries',        contentId: 'incomeEntriesContent' },
         { name: 'sectionTitles',        contentId: 'sectionTitlesContent' },
-        { name: 'bizExpenses',          contentId: 'bizExpensesContent' },
-        { name: 'bizCategoryManagement',contentId: 'bizCategoryManagementContent' }
+        
+        
     ];
 
     sections.forEach(section => {
