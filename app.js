@@ -143,17 +143,10 @@ async function loadUserData() {
                     ...defaults.sectionVisibility,
                     ...(firestoreData.sectionVisibility || {})
                 },
-                bizCategoryVisibility: {
-                    ...defaults.bizCategoryVisibility,
-                    ...(firestoreData.bizCategoryVisibility || {})
-                },
-                categoryVisibility:   firestoreData.categoryVisibility   || {},
-                incomeEntries:        Array.isArray(firestoreData.incomeEntries) ? firestoreData.incomeEntries : defaults.incomeEntries,
-                billableTotal:        firestoreData.billableTotal != null ? firestoreData.billableTotal : defaults.billableTotal,
-                // FIX: these were missing in the broken version, causing bizExpenses to reset on every load
-                bizExpenseCategories: firestoreData.bizExpenseCategories || defaults.bizExpenseCategories,
-                bizExpenses:          firestoreData.bizExpenses          || defaults.bizExpenses,
-                sectionTitles:        { ...defaults.sectionTitles, ...(firestoreData.sectionTitles || {}) }
+                categoryVisibility: firestoreData.categoryVisibility || {},
+                incomeEntries: Array.isArray(firestoreData.incomeEntries) ? firestoreData.incomeEntries : defaults.incomeEntries,
+                billableTotal: firestoreData.billableTotal != null ? firestoreData.billableTotal : defaults.billableTotal,
+                sectionTitles: { ...defaults.sectionTitles, ...(firestoreData.sectionTitles || {}) }
             };
         } else {
             console.log('No data in Firestore, using defaults');
@@ -689,7 +682,7 @@ function moveWishlistToProposed(id) {
 // ============================================================================
 
 function updateDisplay() {
-    generateDailyLogEntries();
+    try { generateDailyLogEntries(); } catch(e) { console.error('generateDailyLogEntries failed:', e); }
     const accumulated = data.totalAccumulated;
     const spent       = calculateTotalSpent();
     const available   = accumulated - spent;
@@ -701,16 +694,16 @@ function updateDisplay() {
     const balanceColor = getBalanceColor(available);
     availableBalanceDiv.innerHTML = `<span style="color: ${balanceColor}; font-weight: bold;">$${available.toFixed(2)}</span>`;
 
-    renderSpendingList();
-    renderProposedList(available);
-    renderWishlist();
-    renderCategoriesManagement();
-    renderAllowanceHistory();
-    renderAllowanceLog();
-    renderColorScheme();
-    renderIncomeTracker();
-    renderSectionTitles();
-    updateSectionVisibility();
+    try { renderSpendingList(); } catch(e) { console.error('renderSpendingList failed:', e); }
+    try { renderProposedList(available); } catch(e) { console.error('renderProposedList failed:', e); }
+    try { renderWishlist(); } catch(e) { console.error('renderWishlist failed:', e); }
+    try { renderCategoriesManagement(); } catch(e) { console.error('renderCategoriesManagement failed:', e); }
+    try { renderAllowanceHistory(); } catch(e) { console.error('renderAllowanceHistory failed:', e); }
+    try { renderAllowanceLog(); } catch(e) { console.error('renderAllowanceLog failed:', e); }
+    try { renderColorScheme(); } catch(e) { console.error('renderColorScheme failed:', e); }
+    try { renderIncomeTracker(); } catch(e) { console.error('renderIncomeTracker failed:', e); }
+    try { renderSectionTitles(); } catch(e) { console.error('renderSectionTitles failed:', e); }
+    try { updateSectionVisibility(); } catch(e) { console.error('updateSectionVisibility failed:', e); }
 }
 
 function renderSpendingList() {
