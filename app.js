@@ -709,7 +709,6 @@ function updateDisplay() {
     renderAllowanceLog();
     renderColorScheme();
     renderIncomeTracker();
-    renderBizExpenses();
     renderSectionTitles();
     updateSectionVisibility();
 }
