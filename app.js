@@ -681,28 +681,11 @@ function moveWishlistToProposed(id) {
 // Display / Render functions + Timeline CSV Export
 // ============================================================================
 
-function showDebug(msg, isError) {
-    let box = document.getElementById('debug-box');
-    if (!box) {
-        box = document.createElement('div');
-        box.id = 'debug-box';
-        box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1f2937;color:#fff;font-size:11px;font-family:monospace;padding:8px;max-height:200px;overflow-y:auto;z-index:99999;';
-        document.body.appendChild(box);
-    }
-    const line = document.createElement('div');
-    line.style.color = isError ? '#f87171' : '#34d399';
-    line.textContent = (isError ? '❌ ' : '✅ ') + msg;
-    box.appendChild(line);
-    box.scrollTop = box.scrollHeight;
-}
-
 function updateDisplay() {
-    try { generateDailyLogEntries(); showDebug('generateDailyLogEntries OK'); } catch(e) { showDebug('generateDailyLogEntries FAILED: ' + e.message, true); }
+    generateDailyLogEntries();
     const accumulated = data.totalAccumulated;
     const spent       = calculateTotalSpent();
     const available   = accumulated - spent;
-
-    showDebug('accumulated=' + accumulated + ' spent=' + spent + ' available=' + available);
 
     document.getElementById('totalAccumulated').textContent = `$${accumulated.toFixed(2)}`;
     document.getElementById('totalSpent').textContent       = `$${spent.toFixed(2)}`;
@@ -711,16 +694,16 @@ function updateDisplay() {
     const balanceColor = getBalanceColor(available);
     availableBalanceDiv.innerHTML = `<span style="color: ${balanceColor}; font-weight: bold;">$${available.toFixed(2)}</span>`;
 
-    try { renderSpendingList(); showDebug('renderSpendingList OK'); } catch(e) { showDebug('renderSpendingList FAILED: ' + e.message, true); }
-    try { renderProposedList(available); showDebug('renderProposedList OK'); } catch(e) { showDebug('renderProposedList FAILED: ' + e.message, true); }
-    try { renderWishlist(); showDebug('renderWishlist OK'); } catch(e) { showDebug('renderWishlist FAILED: ' + e.message, true); }
-    try { renderCategoriesManagement(); showDebug('renderCategoriesManagement OK'); } catch(e) { showDebug('renderCategoriesManagement FAILED: ' + e.message, true); }
-    try { renderAllowanceHistory(); showDebug('renderAllowanceHistory OK'); } catch(e) { showDebug('renderAllowanceHistory FAILED: ' + e.message, true); }
-    try { renderAllowanceLog(); showDebug('renderAllowanceLog OK'); } catch(e) { showDebug('renderAllowanceLog FAILED: ' + e.message, true); }
-    try { renderColorScheme(); showDebug('renderColorScheme OK'); } catch(e) { showDebug('renderColorScheme FAILED: ' + e.message, true); }
-    try { renderIncomeTracker(); showDebug('renderIncomeTracker OK'); } catch(e) { showDebug('renderIncomeTracker FAILED: ' + e.message, true); }
-    try { renderSectionTitles(); showDebug('renderSectionTitles OK'); } catch(e) { showDebug('renderSectionTitles FAILED: ' + e.message, true); }
-    try { updateSectionVisibility(); showDebug('updateSectionVisibility OK'); } catch(e) { showDebug('updateSectionVisibility FAILED: ' + e.message, true); }
+    renderSpendingList();
+    renderProposedList(available);
+    renderWishlist();
+    renderCategoriesManagement();
+    renderAllowanceHistory();
+    renderAllowanceLog();
+    renderColorScheme();
+    renderIncomeTracker();
+    renderSectionTitles();
+    updateSectionVisibility();
 }
 
 function renderSpendingList() {
